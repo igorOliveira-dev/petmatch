@@ -1,0 +1,74 @@
+/* ===== CORES E FONTE (variáveis usadas no site todo) ===== */
+:root{
+  --fundo:#F8F6EA;      /* fundo bege das telas */
+  --topo:#EBEAE3;       /* barra do topo */
+  --painel:#EEEEE6;     /* caixas/cartões */
+  --campo:#D9D9D9;      /* campos de texto */
+  --azul:#1F1B5C;       /* cor dos botões */
+  --borda:#d8d8cf;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fundo);color:#000;font-family:'Comfortaa','Segoe UI',sans-serif}
+
+/* ===== CABEÇALHO (montado pelo app.js) ===== */
+.topo{background:var(--topo);display:flex;align-items:center;justify-content:space-between;padding:10px 24px}
+.logo{font-size:24px;font-weight:700;color:var(--azul);text-decoration:none;border:1px solid #888;padding:6px 12px;background:var(--fundo)}
+.topo nav{display:flex;gap:12px}
+
+/* ===== BOTÕES ===== */
+.btn{background:var(--azul);color:#fff;border:0;border-radius:6px;padding:10px 22px;font:inherit;font-size:16px;cursor:pointer;text-decoration:none;display:inline-block;text-align:center}
+.btn:hover{opacity:.85}
+.btn-claro{background:var(--painel);color:#000;border:1px solid var(--borda)}
+
+/* ===== CAIXAS E CAMPOS ===== */
+main{max-width:960px;margin:40px auto;padding:0 16px}
+.caixa{background:var(--painel);border:1px solid var(--borda);border-radius:8px;padding:24px}
+label{display:block;margin:14px 0 4px;font-size:15px}
+input,select{width:100%;padding:10px;background:var(--campo);border:0;font:inherit;font-size:14px}
+.centro{text-align:center}
+.erro{color:#b00020;min-height:20px;font-size:14px}
+
+/* ===== TELA DE LOGIN ===== */
+.login{max-width:320px;margin:60px auto;text-align:center}
+.login .btn{width:220px;margin:6px 0}
+.login a.link{color:#000;font-size:14px;display:block;margin:14px 0}
+
+/* ===== TELA DE REGISTRO ===== */
+.duas-colunas{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.perfis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.perfil{background:var(--fundo);border:1px solid transparent;border-radius:6px;padding:12px 6px;text-align:center;cursor:pointer;font-size:12px}
+.perfil .icone{font-size:34px;display:block}
+.perfil.ativo{border-color:var(--azul)}
+.painel-extra{display:none;margin-top:14px;font-size:13px}
+.painel-extra.ativo{display:block}
+/* grupos de botões de escolha (Casa / Apartamento, Sim / Não...) */
+.opcoes{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0 10px}
+.opcoes button{background:#fff;border:1px solid #333;border-radius:4px;padding:4px 8px;font:inherit;font-size:12px;cursor:pointer}
+.opcoes button.ativo{background:var(--azul);color:#fff}
+
+/* ===== HOME (filtros + grade de pets) ===== */
+.home{display:grid;grid-template-columns:240px 1fr;gap:32px}
+.grade{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.pet{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;display:block;text-decoration:none;color:#000;background:#c9c5b5 center/cover;display:flex;align-items:center;justify-content:center;font-size:56px}
+.pet span{position:absolute;bottom:6px;left:12%;right:12%;background:rgba(235,234,227,.85);text-align:center;font-size:14px;border-radius:12px;padding:2px}
+
+/* ===== TELAS DE ANIMAL (registro e detalhes) ===== */
+.animal{display:grid;grid-template-columns:1fr 1.4fr;gap:20px}
+.foto{position:relative;min-height:340px;background:#c9c5b5 center/cover;border-radius:8px;display:flex;align-items:center;justify-content:center;text-align:center;cursor:pointer;color:#444;font-size:20px}
+.foto input[type=text]{position:absolute;bottom:10px;left:20%;right:20%;background:#e7e5dc;border-radius:12px;text-align:center}
+.foto .nome{position:absolute;bottom:10px;left:20%;right:20%;background:rgba(235,234,227,.85);border-radius:12px;padding:4px;color:#000;font-size:14px}
+.info{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.info div{background:var(--painel);border:1px solid var(--borda);border-radius:6px;padding:10px;text-align:center;font-size:13px}
+.info .icone{font-size:34px;display:block}
+.info input,.info select{padding:5px;font-size:12px;margin-top:4px}
+.codigo{font-size:18px;margin-bottom:4px}
+.vazio{text-align:center;margin-top:160px;font-size:20px}
+
+@media(max-width:700px){.duas-colunas,.home,.animal{grid-template-columns:1fr}.grade{grid-template-columns:repeat(2,1fr)}}
+
+/* ===== TELA DE ADMINISTRADOR ===== */
+.tabela{width:100%;border-collapse:collapse;background:var(--painel);margin-bottom:32px;font-size:14px}
+.tabela th,.tabela td{padding:8px 10px;border-bottom:1px solid var(--borda);text-align:left}
+.tabela th{background:var(--topo)}
+.btn-perigo{background:#b00020;padding:5px 12px;font-size:13px}
+.rolagem{overflow-x:auto}

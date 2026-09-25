@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PetMatch - Home</title>
+  <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="cabecalho"></div>
+  <main class="home">
+
+    <!-- Filtros (cada mudança atualiza a lista) -->
+    <aside class="caixa">
+      <h3>Filtros</h3>
+      <label>Espécie</label>
+      <select id="f-especie"><option value="">Todas</option><option>Cachorro</option><option>Gato</option></select>
+      <label>Sexo</label>
+      <select id="f-sexo"><option value="">Todos</option><option>Macho</option><option>Fêmea</option></select>
+      <label>Tamanho</label>
+      <select id="f-tamanho"><option value="">Todos</option><option value="p">Pequeno (até 10 kg)</option><option value="m">Médio (10 a 25 kg)</option><option value="g">Grande (+25 kg)</option></select>
+      <label>Idade</label>
+      <select id="f-idade"><option value="">Todas</option><option value="filhote">Filhote (menos de 1 ano)</option><option value="adulto">Adulto (1 a 7 anos)</option><option value="idoso">Idoso (+7 anos)</option></select>
+    </aside>
+
+    <!-- Grade de pets + botão "carregar mais" -->
+    <section>
+      <div class="grade" id="grade"></div>
+      <p class="erro centro" id="aviso"></p>
+      <p class="centro"><button class="btn btn-claro" id="mais">Carregar mais</button></p>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    exigirLogin();
+    montarCabecalho('logado');
+
+    let quantidade = 6;   // quantos pets aparecem (aumenta de 6 em 6)
+    const $ = id => document.getElementById(id);
+
+    // Descobre o tamanho e a faixa de idade de um pet
+    const tamanho = p => p.peso <= 10 ? 'p' : p.peso <= 25 ? 'm' : 'g';
+    const faixa = p => p.idade < 1 ? 'filhote' : p.idade <= 7 ? 'adulto' : 'idoso';
+
+    // Aplica os filtros e desenha os cartões
+    function mostrar() {
+      const lista = ler('pets', []).filter(p =>
+        !p.adotado &&
+        (!$('f-especie').value || p.especie === $('f-especie').value) &&
+        (!$('f-sexo').value || p.sexo === $('f-sexo').value) &&
+        (!$('f-tamanho').value || tamanho(p) === $('f-tamanho').value) &&
+        (!$('f-idade').value || faixa(p) === $('f-idade').value)
+      );
+      $('grade').innerHTML = lista.slice(0, quantidade).map(cartaoPet).join('');
+      $('aviso').textContent = lista.length ? '' : 'Nenhum pet encontrado com esses filtros.';
+      $('mais').style.display = lista.length > quantidade ? 'inline-block' : 'none';
+    }
+
+    document.querySelectorAll('select').forEach(s => s.onchange = () => { quantidade = 6; mostrar(); });
+    $('mais').onclick = () => { quantidade += 6; mostrar(); };
+    mostrar();
+  </script>
+</body>
+</html>

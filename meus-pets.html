@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PetMatch - Meus pets</title>
+  <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="cabecalho"></div>
+  <main>
+    <div class="grade" id="grade"></div>
+    <!-- Mensagem que aparece quando não há pets -->
+    <p class="vazio" id="vazio" style="display:none">Você não tem pets registrados</p>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    exigirLogin();
+    montarCabecalho('logado');
+
+    // Só os pets registrados pelo usuário logado
+    const meus = ler('pets', []).filter(p => p.tutorEmail === usuarioLogado().email);
+    document.getElementById('grade').innerHTML = meus.map(cartaoPet).join('');
+    if (meus.length === 0) document.getElementById('vazio').style.display = 'block';
+  </script>
+</body>
+</html>

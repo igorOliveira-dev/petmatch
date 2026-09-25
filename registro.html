@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PetMatch - Registro</title>
+  <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="cabecalho"></div>
+  <main>
+    <div class="duas-colunas">
+
+      <!-- Coluna esquerda: dados que todo mundo preenche -->
+      <section class="caixa">
+        <h3 class="centro">Dados Fundamentais</h3>
+        <label>NOME COMPLETO</label><input id="nome">
+        <label>E-MAIL</label><input id="email" type="email">
+        <label>SENHA</label><input id="senha" type="password">
+        <label>CPF/CNPJ</label><input id="doc">
+        <label>CEP</label><input id="cep">
+        <label>WHATSAPP</label><input id="whats">
+      </section>
+
+      <!-- Coluna direita: escolha do perfil + perguntas específicas -->
+      <section class="caixa">
+        <h3 class="centro">Escolha Seu Perfil</h3>
+        <div class="perfis">
+          <div class="perfil" data-perfil="adotar"><span class="icone">🐾</span>Quero Adotar<br>Procurando um novo amigo</div>
+          <div class="perfil" data-perfil="doar"><span class="icone">🤲</span>Quero Doar<br>Protetor Independente</div>
+          <div class="perfil" data-perfil="instituicao"><span class="icone">🏛️</span>Instituição Social<br>ONG ou Associação (jurídico)</div>
+        </div>
+
+        <!-- Perguntas do ADOTANTE (só aparece se escolher "Quero Adotar") -->
+        <div class="painel-extra" id="painel-adotar">
+          <b>Perguntas de Compatibilidade</b>
+          <p>Qual o seu tipo de residência?</p>
+          <div class="opcoes" data-nome="residencia"><button type="button">Casa</button><button type="button">Apartamento</button></div>
+          <p>Possui outros animais?</p>
+          <div class="opcoes" data-nome="outrosAnimais"><button type="button">Sim</button><button type="button">Não</button></div>
+          <p>Quanto tempo o pet fica só?</p>
+          <div class="opcoes" data-nome="tempoSo"><button type="button">4h</button><button type="button">4h a 8h</button><button type="button">+8h</button></div>
+          <p>Aceita termo de adoção?</p>
+          <div class="opcoes" data-nome="termo"><button type="button">Sim, concordo</button><button type="button">Não concordo</button></div>
+        </div>
+
+        <!-- Perguntas do DOADOR -->
+        <div class="painel-extra" id="painel-doar">
+          <b>Perguntas de Triagem</b>
+          <p>Motivo da doação do pet:</p>
+          <div class="opcoes" data-nome="motivo"><button type="button">Resgate</button><button type="button">Ninhada</button><button type="button">Mudança</button></div>
+          <p>Situação de saúde do pet:</p>
+          <div class="opcoes" data-nome="saude"><button type="button">Castrado e vacinado</button><button type="button">Só vacinado</button></div>
+          <p>Sociabilidade do animal:</p>
+          <div class="opcoes" data-nome="sociabilidade"><button type="button">Sociável</button><button type="button">Arisco</button><button type="button">Bravo</button></div>
+          <p>Exige termo de adoção?</p>
+          <div class="opcoes" data-nome="termo"><button type="button">Sim, assinado</button><button type="button">Não exijo</button></div>
+        </div>
+
+        <!-- Perguntas da INSTITUIÇÃO -->
+        <div class="painel-extra" id="painel-instituicao">
+          <b>Dados de Credibilidade</b>
+          <p>Capacidade total do abrigo:</p>
+          <div class="opcoes" data-nome="capacidade"><button type="button">-20 pets</button><button type="button">20 a 50 pets</button><button type="button">+50 pets</button></div>
+          <p>Aceita novos voluntários?</p>
+          <div class="opcoes" data-nome="voluntarios"><button type="button">Sim</button><button type="button">Não</button></div>
+          <p>Como recebe ajuda financeira?</p>
+          <div class="opcoes" data-nome="ajuda"><button type="button">Doação recorrente</button><button type="button">Pix e cartão</button><button type="button">Outros</button></div>
+          <p>Aceita termo de adoção?</p>
+          <div class="opcoes" data-nome="termo"><button type="button">Sim, concordo</button><button type="button">Não concordo</button></div>
+        </div>
+      </section>
+    </div>
+
+    <p class="erro centro" id="erro"></p>
+    <p class="centro"><button class="btn" id="continuar">CONTINUAR</button></p>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    montarCabecalho('registro');
+    ativarOpcoes();
+    let perfil = '';   // perfil escolhido
+
+    // Clicar em um perfil: destaca o cartão e mostra só o painel dele
+    document.querySelectorAll('.perfil').forEach(card => {
+      card.onclick = () => {
+        perfil = card.dataset.perfil;
+        document.querySelectorAll('.perfil').forEach(c => c.classList.remove('ativo'));
+        document.querySelectorAll('.painel-extra').forEach(p => p.classList.remove('ativo'));
+        card.classList.add('ativo');
+        document.getElementById('painel-' + perfil).classList.add('ativo');
+      };
+    });
+
+    // Botão CONTINUAR: valida, salva o usuário e entra no site
+    document.getElementById('continuar').onclick = () => {
+      const v = id => document.getElementById(id).value.trim();
+      const erro = msg => document.getElementById('erro').textContent = msg;
+
+      if (!v('nome') || !v('email') || !v('senha') || !v('doc') || !v('cep') || !v('whats')) return erro('Preencha todos os dados fundamentais.');
+      if (!perfil) return erro('Escolha um perfil.');
+
+      const usuarios = ler('usuarios', []);
+      if (usuarios.some(u => u.email === v('email'))) return erro('Este e-mail já está cadastrado.');
+
+      const extras = lerOpcoes(document.getElementById('painel-' + perfil));
+      if (Object.values(extras).includes('')) return erro('Responda todas as perguntas do perfil.');
+      if (extras.termo === 'Não concordo') return erro('É preciso aceitar o termo de adoção para continuar.');
+
+      const usuario = { nome: v('nome'), email: v('email'), senha: v('senha'), doc: v('doc'), cep: v('cep'), whats: v('whats'), perfil, extras };
+      usuarios.push(usuario);
+      salvar('usuarios', usuarios);
+      salvar('sessao', usuario);
+      location.href = 'home.html';
+    };
+  </script>
+</body>
+</html>

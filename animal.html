@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PetMatch - Animal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="cabecalho"></div>
+  <main>
+    <div class="codigo" id="codigo"></div>
+    <div class="animal">
+      <div>
+        <div class="foto" id="foto" style="cursor:default"><span id="patinha">🐾</span><div class="nome" id="nome"></div></div>
+        <p class="centro"><button class="btn" id="adotar">ADOTAR</button></p>
+      </div>
+      <div class="info" id="info"></div>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    exigirLogin();
+    montarCabecalho('logado');
+
+    // Pega o id da URL (animal.html?id=1) e procura o pet
+    const id = Number(new URLSearchParams(location.search).get('id'));
+    const pets = ler('pets', []);
+    const pet = pets.find(p => p.id === id);
+    if (!pet) location.href = 'home.html';
+
+    // Preenche a tela com os dados do pet
+    document.getElementById('codigo').textContent = '#' + String(pet.id).padStart(4, '0');
+    document.getElementById('nome').textContent = pet.nome;
+    if (pet.foto) {
+      document.getElementById('foto').style.backgroundImage = `url('${pet.foto}')`;
+      document.getElementById('patinha').style.display = 'none';
+    }
+    const dados = [
+      ['👶', 'Idade', pet.idade + (pet.idade === 1 ? ' ano' : ' anos')], ['⚖️', 'Peso', pet.peso + ' kg'], ['🐾', 'Temperamento', pet.temperamento],
+      ['⚧', 'Sexo', pet.sexo], ['💉', 'Vacinação', pet.vacinacao], ['✂️', 'Situação', pet.situacao],
+      ['🧬', 'Espécie', pet.especie], ['📍', 'Cidade', pet.cidade], ['👤', 'Tutor', pet.tutor]
+    ];
+    document.getElementById('info').innerHTML = dados.map(d => `<div><span class="icone">${d[0]}</span>${d[1]}:<br>${d[2]}</div>`).join('');
+
+    // Botão ADOTAR: confirma e marca o pet como adotado (some da home)
+    const botao = document.getElementById('adotar');
+    if (pet.adotado) { botao.disabled = true; botao.textContent = 'JÁ ADOTADO'; }
+    if (pet.tutorEmail === usuarioLogado().email) botao.style.display = 'none';   // não adota o próprio pet
+    botao.onclick = () => {
+      if (!confirm('Deseja adotar ' + pet.nome + '?')) return;
+      pet.adotado = true;
+      salvar('pets', pets);
+      alert('Pedido enviado! O tutor (' + pet.tutor + ') entrará em contato.');
+      location.href = 'home.html';
+    };
+  </script>
+</body>
+</html>

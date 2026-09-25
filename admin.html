@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PetMatch - Administração</title>
+  <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="cabecalho"></div>
+  <main>
+    <h2>Painel do Administrador</h2>
+
+    <!-- Tabela de usuários -->
+    <h3>Usuários</h3>
+    <div class="rolagem"><table class="tabela" id="tab-usuarios"></table></div>
+
+    <!-- Tabela de pets -->
+    <h3>Pets</h3>
+    <div class="rolagem"><table class="tabela" id="tab-pets"></table></div>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    exigirAdmin();              // bloqueia quem não é admin
+    montarCabecalho('logado');
+
+    // Desenha as duas tabelas com os dados atuais
+    function desenhar() {
+      const usuarios = ler('usuarios', []);
+      const pets = ler('pets', []);
+
+      // Usuários: o admin não tem botão de excluir (evita se apagar por engano)
+      document.getElementById('tab-usuarios').innerHTML =
+        '<tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>WhatsApp</th><th></th></tr>' +
+        usuarios.map(u => `<tr>
+          <td>${u.nome}</td><td>${u.email}</td><td>${u.perfil}</td><td>${u.whats || '-'}</td>
+          <td>${u.perfil === 'admin' ? '' : `<button class="btn btn-perigo" onclick="excluirUsuario('${u.email}')">Excluir</button>`}</td>
+        </tr>`).join('');
+
+      // Pets: mostra status e permite excluir
+      document.getElementById('tab-pets').innerHTML =
+        '<tr><th>Código</th><th>Nome</th><th>Espécie</th><th>Tutor</th><th>Status</th><th></th></tr>' +
+        pets.map(p => `<tr>
+          <td>#${String(p.id).padStart(4, '0')}</td><td>${p.nome}</td><td>${p.especie}</td><td>${p.tutor}</td>
+          <td>${p.adotado ? 'Adotado' : 'Disponível'}</td>
+          <td><button class="btn btn-perigo" onclick="excluirPet(${p.id})">Excluir</button></td>
+        </tr>`).join('');
+    }
+
+    // Excluir usuário (e os pets que ele registrou)
+    function excluirUsuario(email) {
+      if (!confirm('Excluir este usuário e os pets dele?')) return;
+      salvar('usuarios', ler('usuarios', []).filter(u => u.email !== email));
+      salvar('pets', ler('pets', []).filter(p => p.tutorEmail !== email));
+      desenhar();
+    }
+
+    // Excluir pet
+    function excluirPet(id) {
+      if (!confirm('Excluir este pet?')) return;
+      salvar('pets', ler('pets', []).filter(p => p.id !== id));
+      desenhar();
+    }
+
+    desenhar();
+  </script>
+</body>
+</html>
