@@ -9,77 +9,232 @@
 <body>
   <div id="cabecalho"></div>
   <main>
-    <div class="codigo" id="codigo"></div>
-    <div class="animal">
+    <!-- Esta tela serve para REGISTRAR (sem ?id) e para EDITAR (registrar-animal.html?id=7) -->
+    <h2 id="titulo">Registrar animal</h2>
+    <p class="dica">Campos com <span class="obrig">*</span> são obrigatórios.</p>
 
-      <!-- Foto: clicar abre o seletor de arquivo -->
-      <label class="foto" id="foto">
-        <span id="txt-foto">➕<br>ADICIONE A FOTO<br>DO ANIMAL</span>
-        <input type="file" id="arquivo" accept="image/*" hidden>
-        <input type="text" id="nome" placeholder="Digite o nome do animal" onclick="event.stopPropagation()">
-      </label>
+    <form class="form-pet" id="form" novalidate>
 
-      <!-- Características do animal -->
-      <div class="info">
-        <div><span class="icone">👶</span>Idade (anos):<input type="number" id="idade" min="0" step="1"></div>
-        <div><span class="icone">⚖️</span>Peso (kg):<input type="number" id="peso" min="0" step="0.1"></div>
-        <div><span class="icone">🐾</span>Temperamento:<input id="temperamento"></div>
-        <div><span class="icone">⚧</span>Sexo:<select id="sexo"><option>Macho</option><option>Fêmea</option></select></div>
-        <div><span class="icone">💉</span>Vacinação:<select id="vacinacao"><option>Vacinado</option><option>Não vacinado</option></select></div>
-        <div><span class="icone">✂️</span>Situação:<select id="situacao"><option>Castrado</option><option>Não castrado</option></select></div>
-        <div><span class="icone">🧬</span>Espécie:<select id="especie"><option>Cachorro</option><option>Gato</option></select></div>
-        <div><span class="icone">📍</span>Cidade:<input id="cidade"></div>
-        <div><span class="icone">👤</span>Tutor:<input id="tutor"></div>
+      <!-- Coluna esquerda: foto (clicar ou arrastar uma imagem) -->
+      <div>
+        <label class="foto" id="foto" for="arquivo" tabindex="0" aria-label="Adicionar foto do animal">
+          <span id="txt-foto">➕<br>ADICIONE A FOTO<br>DO ANIMAL<small>clique ou arraste a imagem aqui</small></span>
+        </label>
+        <input type="file" id="arquivo" accept="image/jpeg,image/png,image/webp" hidden>
+        <div class="foto-acoes" id="foto-acoes" hidden>
+          <label class="btn btn-claro" for="arquivo">Trocar foto</label>
+          <button type="button" class="btn btn-claro" id="remover-foto">Remover foto</button>
+        </div>
+        <p class="dica centro">Opcional · JPG, PNG ou WEBP de até 10 MB</p>
+        <p class="erro centro" id="erro-foto" role="alert"></p>
       </div>
-    </div>
-    <p class="erro centro" id="erro"></p>
-    <p class="centro"><button class="btn" id="salvar">SALVAR REGISTRO</button></p>
+
+      <!-- Coluna direita: dados do animal -->
+      <div class="campos">
+        <div class="campo largo">
+          <label for="nome">🐶 Nome do animal <span class="obrig">*</span></label>
+          <input id="nome" maxlength="60" autocomplete="off" placeholder="Ex.: Pipoca">
+          <small class="msg"></small>
+        </div>
+
+        <div class="campo">
+          <span class="rotulo">🧬 Espécie <span class="obrig">*</span></span>
+          <div class="opcoes" data-nome="especie"><button type="button">Cachorro</button><button type="button">Gato</button></div>
+          <small class="msg"></small>
+        </div>
+        <div class="campo">
+          <span class="rotulo">⚧ Sexo <span class="obrig">*</span></span>
+          <div class="opcoes" data-nome="sexo"><button type="button">Macho</button><button type="button">Fêmea</button></div>
+          <small class="msg"></small>
+        </div>
+
+        <div class="campo">
+          <label for="idade">👶 Idade (anos) <span class="obrig">*</span></label>
+          <input type="number" id="idade" min="0" max="40" step="1" inputmode="numeric" placeholder="0 se tiver menos de 1 ano">
+          <small class="msg"></small>
+        </div>
+        <div class="campo">
+          <label for="peso">⚖️ Peso (kg) <span class="obrig">*</span></label>
+          <input type="number" id="peso" min="0.1" max="150" step="0.1" inputmode="decimal" placeholder="Ex.: 12,5">
+          <small class="msg"></small>
+        </div>
+
+        <div class="campo">
+          <span class="rotulo">💉 Vacinação <span class="obrig">*</span></span>
+          <div class="opcoes" data-nome="vacinacao"><button type="button">Vacinado</button><button type="button">Não vacinado</button></div>
+          <small class="msg"></small>
+        </div>
+        <div class="campo">
+          <span class="rotulo">✂️ Situação <span class="obrig">*</span></span>
+          <div class="opcoes" data-nome="situacao"><button type="button">Castrado</button><button type="button">Não castrado</button></div>
+          <small class="msg"></small>
+        </div>
+
+        <div class="campo largo">
+          <label for="temperamento">🐾 Temperamento <span class="obrig">*</span></label>
+          <input id="temperamento" maxlength="60" list="temperamentos" placeholder="Escolha ou escreva">
+          <datalist id="temperamentos">
+            <option>Dócil</option><option>Brincalhão</option><option>Calmo</option><option>Sociável</option>
+            <option>Agitado</option><option>Tímido</option><option>Arisco</option>
+          </datalist>
+          <small class="msg"></small>
+        </div>
+
+        <div class="campo">
+          <label for="cidade">📍 Cidade <span class="obrig">*</span></label>
+          <input id="cidade" maxlength="60" autocomplete="address-level2">
+          <small class="msg"></small>
+        </div>
+        <div class="campo">
+          <label for="tutor">👤 Tutor <span class="obrig">*</span></label>
+          <input id="tutor" maxlength="60">
+          <small class="msg"></small>
+        </div>
+      </div>
+    </form>
+
+    <p class="erro centro" id="erro" role="alert"></p>
+    <p class="acoes-form">
+      <a class="btn btn-claro" id="cancelar" href="meus-pets.html">CANCELAR</a>
+      <button class="btn" id="salvar" type="submit" form="form">SALVAR REGISTRO</button>
+    </p>
   </main>
 
   <script src="app.js"></script>
   <script>
     exigirLogin();
     montarCabecalho('logado');
+    ativarOpcoes();
     const $ = id => document.getElementById(id);
+    const editarId = Number(new URLSearchParams(location.search).get('id')) || 0;
+    let foto = '';           // data URL da foto (ou '' sem foto)
+    let alterado = false;    // há mudanças não salvas?
+    let salvando = false;
 
-    // O código do pet (#0007) é gerado pelo banco quando salvar
-    $('codigo').textContent = 'NOVO PET';
-    $('tutor').value = usuarioLogado().nome;   // já preenche o tutor com quem está logado
-
-    // Foto: lê o arquivo, reduz para 500px (para o envio ficar leve) e mostra
-    let foto = '';
-    $('arquivo').onchange = e => {
-      const leitor = new FileReader();
-      leitor.onload = () => {
-        const img = new Image();
-        img.onload = () => {
-          const escala = Math.min(1, 500 / img.width);
-          const canvas = document.createElement('canvas');
-          canvas.width = img.width * escala; canvas.height = img.height * escala;
-          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-          foto = canvas.toDataURL('image/jpeg', 0.7);
-          $('foto').style.backgroundImage = `url('${foto}')`;
-          $('txt-foto').style.display = 'none';
-        };
-        img.src = leitor.result;
-      };
-      if (e.target.files[0]) leitor.readAsDataURL(e.target.files[0]);
+    /* ---------- Regras de cada campo (devolvem a mensagem de erro ou '') ---------- */
+    const ESCOLHAS = ['especie', 'sexo', 'vacinacao', 'situacao'];
+    const regras = {
+      nome: v => v ? '' : 'Informe o nome do animal.',
+      idade: (v, el) => el.validity.badInput ? 'Digite só números.' : v === '' ? 'Informe a idade.' :
+        !/^\d+$/.test(v) || +v > 40 ? 'Use um número inteiro de 0 a 40.' : '',
+      peso: (v, el) => el.validity.badInput ? 'Digite um número, ex.: 12,5.' : v === '' ? 'Informe o peso.' :
+        !(+v >= 0.1 && +v <= 150) ? 'Use um valor entre 0,1 e 150 kg.' : '',
+      temperamento: v => v ? '' : 'Descreva o temperamento.',
+      cidade: v => v ? '' : 'Informe a cidade.',
+      tutor: v => v ? '' : 'Informe o tutor.',
     };
+    const grupo = nome => document.querySelector(`.opcoes[data-nome="${nome}"]`);
+    const escolha = nome => grupo(nome).querySelector('.ativo')?.textContent || '';
 
-    // SALVAR REGISTRO: valida e guarda o pet
-    $('salvar').onclick = async () => {
-      const campos = ['nome', 'idade', 'peso', 'temperamento', 'cidade', 'tutor'];
-      if (campos.some(c => !$(c).value.trim())) { $('erro').textContent = 'Preencha todos os campos.'; return; }
+    // valida um campo, mostra a mensagem embaixo dele e devolve true se está ok
+    function validar(nome) {
+      const el = ESCOLHAS.includes(nome) ? grupo(nome) : $(nome);
+      const msg = ESCOLHAS.includes(nome) ? (escolha(nome) ? '' : 'Escolha uma opção.') : regras[nome](el.value.trim(), el);
+      const campo = el.closest('.campo');
+      campo.classList.toggle('invalido', !!msg);
+      campo.querySelector('.msg').textContent = msg;
+      el.setAttribute('aria-invalid', !!msg);
+      if (!document.querySelector('.campo.invalido') && $('erro').textContent === 'Corrija os campos destacados.') $('erro').textContent = '';
+      return !msg;
+    }
+
+    // valida ao sair do campo; depois do 1º erro, revalida enquanto digita
+    Object.keys(regras).forEach(n => {
+      $(n).addEventListener('blur', () => $(n).value && validar(n));
+      $(n).addEventListener('input', () => $(n).closest('.campo').classList.contains('invalido') && validar(n));
+    });
+    ESCOLHAS.forEach(n => grupo(n).addEventListener('click', () => validar(n)));
+    $('form').addEventListener('input', () => alterado = true);
+    $('form').addEventListener('click', e => { if (e.target.matches('.opcoes button')) alterado = true; });
+    addEventListener('beforeunload', e => { if (alterado && !salvando) e.preventDefault(); });
+
+    /* ---------- Foto ---------- */
+    function mostrarFoto(dataUrl) {
+      foto = dataUrl;
+      $('foto').style.backgroundImage = foto ? `url('${foto}')` : '';
+      $('txt-foto').hidden = !!foto;
+      $('foto-acoes').hidden = !foto;
+    }
+    // reduz para no máximo 600px (o envio fica leve) e converte para JPEG
+    function carregarFoto(arquivo) {
+      $('erro-foto').textContent = '';
+      if (!arquivo) return;
+      if (!/^image\/(jpeg|png|webp)$/.test(arquivo.type)) return $('erro-foto').textContent = 'Formato não aceito. Use JPG, PNG ou WEBP.';
+      if (arquivo.size > 10 * 1024 * 1024) return $('erro-foto').textContent = 'A imagem passa de 10 MB.';
+      const img = new Image();
+      const url = URL.createObjectURL(arquivo);
+      img.onload = () => {
+        const escala = Math.min(1, 600 / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * escala);
+        canvas.height = Math.round(img.height * escala);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        mostrarFoto(canvas.toDataURL('image/jpeg', 0.75));
+        alterado = true;
+        URL.revokeObjectURL(url);
+      };
+      img.onerror = () => { $('erro-foto').textContent = 'Não foi possível abrir esta imagem.'; URL.revokeObjectURL(url); };
+      img.src = url;
+    }
+    $('arquivo').onchange = e => { carregarFoto(e.target.files[0]); e.target.value = ''; };
+    $('remover-foto').onclick = () => { mostrarFoto(''); alterado = true; };
+    // teclado: Enter/Espaço na área da foto abre o seletor
+    $('foto').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('arquivo').click(); } });
+    // arrastar e soltar
+    ['dragenter', 'dragover'].forEach(t => $('foto').addEventListener(t, e => { e.preventDefault(); $('foto').classList.add('arrastando'); }));
+    ['dragleave', 'drop'].forEach(t => $('foto').addEventListener(t, () => $('foto').classList.remove('arrastando')));
+    $('foto').addEventListener('drop', e => { e.preventDefault(); carregarFoto(e.dataTransfer.files[0]); });
+
+    /* ---------- Modo edição: carrega o pet e preenche ---------- */
+    if (editarId) {
+      document.title = 'PetMatch - Editar animal';
+      $('titulo').textContent = 'Editar animal #' + String(editarId).padStart(4, '0');
+      $('salvar').textContent = 'SALVAR ALTERAÇÕES';
+      $('cancelar').href = 'animal.html?id=' + editarId;
+      $('salvar').disabled = true;   // até carregar
+      api('GET', '/pets/' + editarId).then(pet => {
+        const eu = usuarioLogado();
+        if (pet.tutorEmail !== eu.email && eu.perfil !== 'admin') return location.href = 'animal.html?id=' + editarId;
+        Object.keys(regras).forEach(n => $(n).value = pet[n]);
+        ESCOLHAS.forEach(n => marcarOpcao(grupo(n), pet[n]));
+        mostrarFoto(pet.foto);
+        $('salvar').disabled = false;
+      }).catch(e => { $('erro').textContent = e.message; });
+    } else {
+      $('tutor').value = usuarioLogado().nome;   // já preenche o tutor com quem está logado
+    }
+
+    /* ---------- Salvar ---------- */
+    $('form').onsubmit = async e => {
+      e.preventDefault();
+      if (salvando) return;
+      $('erro').textContent = '';
+      const invalidos = [...Object.keys(regras), ...ESCOLHAS].filter(n => !validar(n));
+      if (invalidos.length) {
+        $('erro').textContent = 'Corrija os campos destacados.';
+        document.querySelector('.campo.invalido input, .campo.invalido button')?.focus();
+        return;
+      }
       const pet = {
         foto,
         nome: $('nome').value.trim(), idade: Number($('idade').value), peso: Number($('peso').value),
-        temperamento: $('temperamento').value.trim(), sexo: $('sexo').value, vacinacao: $('vacinacao').value,
-        situacao: $('situacao').value, especie: $('especie').value, cidade: $('cidade').value.trim(), tutor: $('tutor').value.trim()
+        temperamento: $('temperamento').value.trim(), cidade: $('cidade').value.trim(), tutor: $('tutor').value.trim(),
+        ...Object.fromEntries(ESCOLHAS.map(n => [n, escolha(n)])),
       };
+      salvando = true;
+      const textoBotao = $('salvar').textContent;
+      $('salvar').disabled = true;
+      $('salvar').textContent = 'SALVANDO...';
       try {
-        await api('POST', '/pets', pet);
-        location.href = 'meus-pets.html';
-      } catch (e) { $('erro').textContent = e.message; }
+        if (editarId) await api('PUT', '/pets/' + editarId, pet);
+        const novo = editarId ? null : await api('POST', '/pets', pet);
+        location.href = 'animal.html?id=' + (editarId || novo.id);
+      } catch (err) {
+        $('erro').textContent = err.message;
+        salvando = false;
+        $('salvar').disabled = false;
+        $('salvar').textContent = textoBotao;
+      }
     };
   </script>
 </body>

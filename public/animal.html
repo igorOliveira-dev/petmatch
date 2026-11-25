@@ -13,7 +13,11 @@
     <div class="animal">
       <div>
         <div class="foto" id="foto" style="cursor:default"><span id="patinha">🐾</span><div class="nome" id="nome"></div></div>
-        <p class="centro"><button class="btn" id="adotar">ADOTAR</button></p>
+        <p class="acoes-form">
+          <button class="btn" id="adotar">ADOTAR</button>
+          <a class="btn" id="editar" hidden>EDITAR</a>
+          <button class="btn btn-perigo" id="excluir" hidden>EXCLUIR</button>
+        </p>
       </div>
       <div class="info" id="info"></div>
     </div>
@@ -26,7 +30,7 @@
 
     // Pega o id da URL (animal.html?id=1) e procura o pet
     const id = Number(new URLSearchParams(location.search).get('id'));
-    api('GET', '/pets/' + id).then(mostrar).catch(() => location.href = 'home.html');
+    api('GET', '/pets/' + id).then(mostrar).catch(() => { alert('Pet não encontrado.'); location.href = 'home.html'; });
 
     function mostrar(pet) {
     // Preenche a tela com os dados do pet
@@ -46,7 +50,22 @@
     // Botão ADOTAR: confirma e marca o pet como adotado (some da home)
     const botao = document.getElementById('adotar');
     if (pet.adotado) { botao.disabled = true; botao.textContent = 'JÁ ADOTADO'; }
-    if (pet.tutorEmail === usuarioLogado().email) botao.style.display = 'none';   // não adota o próprio pet
+    const dono = pet.tutorEmail === usuarioLogado().email;
+    if (dono) botao.style.display = 'none';   // não adota o próprio pet
+
+    // EDITAR / EXCLUIR: só para o dono do pet ou o admin
+    if (dono || usuarioLogado().perfil === 'admin') {
+      document.getElementById('editar').hidden = false;
+      document.getElementById('editar').href = 'registrar-animal.html?id=' + pet.id;
+      document.getElementById('excluir').hidden = false;
+      document.getElementById('excluir').onclick = async () => {
+        if (!confirm('Excluir ' + pet.nome + '? Isso não pode ser desfeito.')) return;
+        try {
+          await api('DELETE', '/pets/' + pet.id);
+          location.href = 'meus-pets.html';
+        } catch (e) { alert(e.message); }
+      };
+    }
     botao.onclick = async () => {
       if (!confirm('Deseja adotar ' + pet.nome + '?')) return;
       try {

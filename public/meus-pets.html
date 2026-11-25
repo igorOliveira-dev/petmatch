@@ -9,6 +9,14 @@
 <body>
   <div id="cabecalho"></div>
   <main>
+    <div class="barra-titulo">
+      <h2>Meus pets</h2>
+      <span>
+        <button class="btn btn-claro btn-pequeno" id="baixar">⬇ Relatório dos meus pets (CSV)</button>
+        <a class="btn btn-pequeno" href="registrar-animal.html">+ Registrar pet</a>
+      </span>
+    </div>
+    <p class="erro" id="erro"></p>
     <div class="grade" id="grade"></div>
     <!-- Mensagem que aparece quando não há pets -->
     <p class="vazio" id="vazio" style="display:none">Você não tem pets registrados</p>
@@ -24,7 +32,10 @@
       const meus = pets.filter(p => p.tutorEmail === usuarioLogado().email);
       document.getElementById('grade').innerHTML = meus.map(cartaoPet).join('');
       if (meus.length === 0) document.getElementById('vazio').style.display = 'block';
-    });
+    }).catch(e => document.getElementById('erro').textContent = e.message);
+
+    document.getElementById('baixar').onclick = () =>
+      baixar('/relatorios/pets.csv?escopo=meus', 'meus-pets.csv').catch(e => document.getElementById('erro').textContent = e.message);
   </script>
 </body>
 </html>

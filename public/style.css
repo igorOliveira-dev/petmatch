@@ -10,6 +10,9 @@
 * {
   box-sizing: border-box;
 }
+[hidden] {
+  display: none !important;
+}
 body {
   margin: 0;
   background: var(--fundo);
@@ -32,7 +35,25 @@ body {
 }
 .topo nav {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 12px;
+}
+@media (max-width: 700px) {
+  .topo {
+    padding: 8px 12px;
+    gap: 8px;
+  }
+  .logo > img {
+    width: 90px;
+  }
+  .topo nav {
+    gap: 6px;
+  }
+  .topo .btn {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
 }
 
 /* ===== BOTÕES ===== */
@@ -305,6 +326,8 @@ select {
 }
 .btn-perigo {
   background: #b00020;
+}
+.tabela .btn {
   padding: 5px 12px;
   font-size: 13px;
 }
@@ -327,6 +350,164 @@ select {
 }
 .termos {
   max-width: 800px;
-  margin: 0 auto;
   line-height: 1.6;
+}
+.termos h3 {
+  margin: 28px 0 6px;
+}
+.termos .assinatura {
+  text-align: right;
+  margin-top: 32px;
+}
+
+/* ===== FORMULÁRIO DE ANIMAL (registrar / editar) ===== */
+.form-pet {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 24px;
+  align-items: start;
+}
+.form-pet .foto {
+  margin: 0;
+  flex-direction: column;
+}
+.foto small {
+  display: block;
+  font-size: 12px;
+  margin-top: 8px;
+}
+.foto.arrastando {
+  outline: 3px dashed var(--azul);
+  outline-offset: 4px;
+}
+.foto-acoes {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 10px;
+}
+.foto-acoes .btn {
+  margin: 0;
+  font-size: 13px;
+  padding: 6px 12px;
+}
+.campos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 16px;
+  background: var(--painel);
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  padding: 8px 20px 12px;
+}
+.campo.largo {
+  grid-column: 1 / -1;
+}
+.campo label,
+.campo .rotulo {
+  display: block;
+  margin: 12px 0 4px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.campo .opcoes {
+  margin: 0;
+}
+.campo .opcoes button {
+  padding: 8px 12px;
+  font-size: 13px;
+}
+.campo .msg {
+  display: block;
+  min-height: 16px;
+  color: #b00020;
+  font-size: 12px;
+}
+.campo.invalido input,
+.campo.invalido .opcoes button {
+  outline: 2px solid #b00020;
+}
+.obrig {
+  color: #b00020;
+}
+.dica {
+  font-size: 13px;
+  color: #555;
+}
+.acoes-form {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-pequeno {
+  font-size: 13px;
+  padding: 7px 14px;
+}
+label.btn {
+  margin: 0;
+}
+/* foco visível para quem usa teclado */
+.btn:focus-visible,
+.foto:focus-visible,
+.opcoes button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--azul);
+  outline-offset: 2px;
+}
+
+/* ===== MEUS PETS ===== */
+.barra-titulo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.barra-titulo span {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ===== RELATÓRIOS (admin) ===== */
+.relatorios {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.relatorios .caixa {
+  padding: 16px;
+}
+.relatorios h3 {
+  margin-top: 0;
+}
+.filtros-relatorio {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.filtros-relatorio label {
+  margin: 0;
+  font-size: 13px;
+  flex: 1;
+}
+.import-nova td:nth-child(2) { color: #1b6e2a; }
+#tab-importado td:nth-child(2) { min-width: 200px; }
+.acoes-tabela { white-space: nowrap; }
+.import-erro { background: #fbe9eb; }
+.import-ignorada { color: #777; }
+
+@media (max-width: 700px) {
+  .form-pet,
+  .campos,
+  .relatorios {
+    grid-template-columns: 1fr;
+  }
 }

@@ -4,7 +4,8 @@
   "description": "PetMatch - site de adoção de animais",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node teste-formatos.js"
   },
   "repository": {
     "type": "git",

@@ -7,16 +7,32 @@
 /* --- Conversa com o servidor --- */
 async function api(metodo, caminho, corpo) {
   const sessao = usuarioLogado();
-  const resp = await fetch("/api" + caminho, {
-    method: metodo,
-    headers: { "Content-Type": "application/json", Authorization: sessao ? sessao.token : "" },
-    body: corpo ? JSON.stringify(corpo) : undefined,
-  });
-  if (resp.status === 401 && sessao) sair(); // token vencido: volta pro login
+  let resp;
+  try {
+    resp = await fetch("/api" + caminho, {
+      method: metodo,
+      headers: { "Content-Type": "application/json", Authorization: sessao ? sessao.token : "" },
+      body: corpo ? JSON.stringify(corpo) : undefined,
+    });
+  } catch {
+    throw new Error("Sem conexão com o servidor. Verifique sua internet e tente de novo.");
+  }
+  if (resp.status === 401 && sessao && caminho !== "/login") sair(); // sessão vencida: volta pro login
   if (resp.status === 204) return null;
   const dados = resp.headers.get("content-type")?.includes("json") ? await resp.json() : null;
   if (!resp.ok) throw new Error((dados && dados.erro) || "Erro no servidor.");
   return dados;
+}
+
+/* --- Baixa um relatório CSV do servidor (com o token) e salva como arquivo --- */
+async function baixar(caminho, nomeArquivo) {
+  const resp = await fetch("/api" + caminho, { headers: { Authorization: usuarioLogado().token } }).catch(() => null);
+  if (!resp || !resp.ok) throw new Error("Não foi possível gerar o relatório. Tente novamente.");
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(await resp.blob());
+  link.download = nomeArquivo;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
 
 /* --- Sessão: quem está logado --- */
@@ -69,9 +85,15 @@ function ativarOpcoes() {
   document.querySelectorAll(".opcoes").forEach((grupo) => {
     grupo.addEventListener("click", (e) => {
       if (e.target.tagName !== "BUTTON") return;
-      grupo.querySelectorAll("button").forEach((b) => b.classList.remove("ativo"));
-      e.target.classList.add("ativo");
+      marcarOpcao(grupo, e.target.textContent);
     });
+  });
+}
+// seleciona (por texto) um botão de um grupo de opções
+function marcarOpcao(grupo, valor) {
+  grupo.querySelectorAll("button").forEach((b) => {
+    b.classList.toggle("ativo", b.textContent === valor);
+    b.setAttribute("aria-pressed", b.textContent === valor);
   });
 }
 // devolve as escolhas de um painel: { nomeDoGrupo: 'valor escolhido' }
@@ -91,5 +113,22 @@ function fotoStyle(pet) {
 
 /* --- Cartão de pet (usado na home e em "meus pets") --- */
 function cartaoPet(pet) {
-  return `<a class="pet" href="animal.html?id=${pet.id}" ${fotoStyle(pet)}>${pet.foto ? "" : "🐾"}<span>${esc(pet.nome)}</span></a>`;
+  return `<a class="pet" href="animal.html?id=${pet.id}" ${fotoStyle(pet)}>${pet.foto ? "" : "🐾"}<span>${esc(pet.nome)}${pet.adotado ? " · adotado" : ""}</span></a>`;
+}
+
+/* --- Máscaras: <input data-mascara="doc|cep|whats"> formata enquanto digita (usa formatos.js) ---
+   Mantém o cursor no lugar certo mesmo editando no meio do texto. */
+function ativarMascaras() {
+  document.querySelectorAll("[data-mascara]").forEach((input) => {
+    const tipo = input.dataset.mascara;
+    input.inputMode = "numeric";
+    input.maxLength = PADROES[tipo]("0".repeat(MAX_DIGITOS[tipo])).length;
+    input.addEventListener("input", () => {
+      const digitosAntes = input.value.slice(0, input.selectionStart).replace(/\D/g, "").length;
+      input.value = formatar(input.value, tipo);
+      let pos = 0;
+      for (let n = 0; pos < input.value.length && n < digitosAntes; pos++) if (/\d/.test(input.value[pos])) n++;
+      input.setSelectionRange(pos, pos);
+    });
+  });
 }

@@ -21,6 +21,7 @@
       <select id="f-tamanho"><option value="">Todos</option><option value="p">Pequeno (até 10 kg)</option><option value="m">Médio (10 a 25 kg)</option><option value="g">Grande (+25 kg)</option></select>
       <label>Idade</label>
       <select id="f-idade"><option value="">Todas</option><option value="filhote">Filhote (menos de 1 ano)</option><option value="adulto">Adulto (1 a 7 anos)</option><option value="idoso">Idoso (+7 anos)</option></select>
+      <p><button class="btn btn-claro btn-pequeno" id="baixar">⬇ Baixar lista (CSV)</button></p>
     </aside>
 
     <!-- Grade de pets + botão "carregar mais" -->
@@ -60,6 +61,12 @@
 
     document.querySelectorAll('select').forEach(s => s.onchange = () => { quantidade = 6; mostrar(); });
     $('mais').onclick = () => { quantidade += 6; mostrar(); };
+
+    // CSV com os pets disponíveis, usando os mesmos filtros da tela
+    $('baixar').onclick = () => {
+      const q = new URLSearchParams({ escopo: 'disponiveis', especie: $('f-especie').value, sexo: $('f-sexo').value, porte: $('f-tamanho').value, idade: $('f-idade').value });
+      baixar('/relatorios/pets.csv?' + q, 'pets-disponiveis.csv').catch(e => $('aviso').textContent = e.message);
+    };
     api('GET', '/pets').then(r => { pets = r; mostrar(); }).catch(e => $('aviso').textContent = e.message);
   </script>
 </body>

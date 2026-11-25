@@ -10,30 +10,36 @@
   <div id="cabecalho"></div>
 
   <!-- Formulário de login -->
-  <main class="login">
+  <main class="login"><form id="form-login">
     <h2>LOGIN</h2>
     <label>E-MAIL</label>
-    <input type="email" id="email" placeholder="Digite o E-Mail">
+    <input type="email" id="email" placeholder="Digite o E-Mail" autocomplete="username" required>
     <label>SENHA</label>
-    <input type="password" id="senha" placeholder="Digite a senha">
+    <input type="password" id="senha" placeholder="Digite a senha" autocomplete="current-password" required>
     <a class="link" href="#" id="esqueci">ESQUECI MINHA SENHA</a>
     <p class="erro" id="erro"></p>
-    <button class="btn" id="entrar">ENTRAR</button>
+    <button class="btn" id="entrar" type="submit">ENTRAR</button>
     <a class="btn" href="registro.html">CADASTRAR-SE</a>
-  </main>
+  </form></main>
 
   <script src="app.js"></script>
   <script>
     montarCabecalho('nenhum');
 
     // Botão ENTRAR: procura um usuário com o e-mail e senha digitados
-    document.getElementById('entrar').onclick = async () => {
+    if (usuarioLogado()) location.href = 'home.html';   // já está logado
+    document.getElementById('form-login').onsubmit = async e => {
+      e.preventDefault();
       const email = document.getElementById('email').value.trim();
       const senha = document.getElementById('senha').value;
+      const botao = document.getElementById('entrar');
+      if (!email || !senha) return document.getElementById('erro').textContent = 'Informe e-mail e senha.';
+      botao.disabled = true;
       try {
         entrar(await api('POST', '/login', { email, senha }));   // guarda quem entrou e vai pra home
-      } catch (e) {
-        document.getElementById('erro').textContent = e.message;
+      } catch (err) {
+        document.getElementById('erro').textContent = err.message;
+        botao.disabled = false;
       }
     };
 

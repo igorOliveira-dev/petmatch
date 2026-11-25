@@ -11,15 +11,37 @@
   <main>
     <h2>Painel do Administrador</h2>
 
-    <!-- Relatório: baixar do banco e importar um CSV para visualizar -->
-    <h3>Relatório de pets</h3>
-    <p>
-      <button class="btn" id="baixar">BAIXAR RELATÓRIO CSV</button>
-      <label class="btn btn-claro">IMPORTAR RELATÓRIO CSV<input type="file" id="importar" accept=".csv,text/csv" hidden></label>
-    </p>
-    <p class="erro" id="erro"></p>
-    <div id="importado" style="display:none">
-      <p><b id="nome-arquivo"></b></p>
+    <!-- Relatórios: baixar do banco -->
+    <div class="relatorios">
+      <section class="caixa">
+        <h3>Relatório de pets</h3>
+        <div class="filtros-relatorio">
+          <label>Status<select id="r-status"><option value="">Todos</option><option value="disponivel">Disponíveis</option><option value="adotado">Adotados</option></select></label>
+          <label>Espécie<select id="r-especie"><option value="">Todas</option><option>Cachorro</option><option>Gato</option></select></label>
+        </div>
+        <button class="btn btn-pequeno" id="baixar-pets">⬇ BAIXAR CSV</button>
+      </section>
+      <section class="caixa">
+        <h3>Relatório de usuários</h3>
+        <p class="dica">Perfil, contato, aceite dos termos e quantos pets cada um cadastrou/doou.</p>
+        <button class="btn btn-pequeno" id="baixar-usuarios">⬇ BAIXAR CSV</button>
+      </section>
+      <section class="caixa">
+        <h3>Importar pets (CSV)</h3>
+        <p class="dica">Use o <a href="modelo-importacao-pets.csv" download>modelo</a> ou o próprio relatório de pets. Linhas com código já existente são ignoradas.</p>
+        <label class="btn btn-claro btn-pequeno">📂 ESCOLHER ARQUIVO<input type="file" id="importar" accept=".csv,text/csv" hidden></label>
+      </section>
+    </div>
+    <p class="erro" id="erro" role="alert"></p>
+
+    <!-- Exibição do arquivo importado + resultado de cada linha -->
+    <div id="importado" hidden>
+      <h3 id="nome-arquivo"></h3>
+      <p id="resumo-import"></p>
+      <p class="acoes-form" id="acoes-import" hidden>
+        <button class="btn btn-claro" id="cancelar-import">CANCELAR</button>
+        <button class="btn" id="confirmar-import"></button>
+      </p>
       <div class="rolagem"><table class="tabela" id="tab-importado"></table></div>
     </div>
 
@@ -57,34 +79,30 @@
         pets.map(p => `<tr>
           <td>#${String(p.id).padStart(4, '0')}</td><td>${esc(p.nome)}</td><td>${esc(p.especie)}</td><td>${esc(p.tutor)}</td>
           <td>${p.adotado ? 'Adotado' : 'Disponível'}</td>
-          <td><button class="btn btn-perigo" onclick="excluirPet(${p.id})">Excluir</button></td>
+          <td class="acoes-tabela"><a class="btn btn-claro" href="registrar-animal.html?id=${p.id}">Editar</a> <button class="btn btn-perigo" onclick="excluirPet(${p.id})">Excluir</button></td>
         </tr>`).join('');
     }
+
+    const mostrarErro = e => $('erro').textContent = e.message;
 
     // Excluir usuário (o banco apaga os pets dele junto)
     async function excluirUsuario(email) {
       if (!confirm('Excluir este usuário e os pets dele?')) return;
-      await api('DELETE', '/usuarios/' + encodeURIComponent(email));
-      desenhar();
+      await api('DELETE', '/usuarios/' + encodeURIComponent(email)).then(desenhar).catch(mostrarErro);
     }
 
     // Excluir pet
     async function excluirPet(id) {
       if (!confirm('Excluir este pet?')) return;
-      await api('DELETE', '/pets/' + id);
-      desenhar();
+      await api('DELETE', '/pets/' + id).then(desenhar).catch(mostrarErro);
     }
 
-    // BAIXAR: pede o CSV ao servidor (com o token) e salva como arquivo
-    $('baixar').onclick = async () => {
-      const resp = await fetch('/api/relatorio.csv', { headers: { Authorization: usuarioLogado().token } });
-      if (!resp.ok) return $('erro').textContent = 'Não foi possível gerar o relatório.';
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(await resp.blob());
-      link.download = 'relatorio-pets.csv';
-      link.click();
-      URL.revokeObjectURL(link.href);
+    // BAIXAR relatórios
+    $('baixar-pets').onclick = () => {
+      const q = new URLSearchParams({ status: $('r-status').value, especie: $('r-especie').value });
+      baixar('/relatorios/pets.csv?' + q, 'relatorio-pets.csv').catch(mostrarErro);
     };
+    $('baixar-usuarios').onclick = () => baixar('/relatorios/usuarios.csv', 'relatorio-usuarios.csv').catch(mostrarErro);
 
     // Lê um texto CSV (separador ";" ou ",", com campos entre aspas) e devolve linhas de colunas
     function lerCSV(texto) {
@@ -108,20 +126,66 @@
       return linhas;
     }
 
-    // IMPORTAR: abre um CSV do computador e exibe numa tabela
+    // IMPORTAR passo 1: lê o CSV, exibe numa tabela e pede ao servidor uma SIMULAÇÃO (não grava nada)
+    let importacao = null;   // { cabecalho, linhas } aguardando confirmação
+    const ROTULO = { nova: '✅ Será incluída', ignorada: '⏭ Ignorada', erro: '❌ Erro' };
+
+    function exibirImportacao(nome, cabecalho, linhas, resultado) {
+      const porLinha = Object.fromEntries((resultado?.linhas || []).map(r => [r.linha, r]));
+      $('nome-arquivo').textContent = nome;
+      $('tab-importado').innerHTML =
+        '<tr><th>Linha</th>' + (resultado ? '<th>Resultado</th>' : '') + cabecalho.map(c => `<th>${esc(c)}</th>`).join('') + '</tr>' +
+        linhas.map((l, i) => {
+          const r = porLinha[i + 2];
+          return `<tr class="${r ? 'import-' + r.status : ''}"><td>${i + 2}</td>` +
+            (resultado ? `<td>${r ? ROTULO[r.status] + (r.motivo ? '<br><small>' + esc(r.motivo) + '</small>' : '') : ''}</td>` : '') +
+            l.map(c => `<td>${esc(c)}</td>`).join('') + '</tr>';
+        }).join('');
+      $('importado').hidden = false;
+    }
+
     $('importar').onchange = async e => {
       const arquivo = e.target.files[0];
+      e.target.value = '';   // permite escolher o mesmo arquivo de novo
       if (!arquivo) return;
-      const [cabeca = [], ...linhas] = lerCSV(await arquivo.text());
-      $('nome-arquivo').textContent = `${arquivo.name} — ${linhas.length} registro(s) importado(s)`;
-      $('tab-importado').innerHTML =
-        '<tr>' + cabeca.map(c => `<th>${esc(c)}</th>`).join('') + '</tr>' +
-        linhas.map(l => '<tr>' + l.map(c => `<td>${esc(c)}</td>`).join('') + '</tr>').join('');
-      $('importado').style.display = 'block';
-      e.target.value = '';   // permite importar o mesmo arquivo de novo
+      $('erro').textContent = '';
+      $('acoes-import').hidden = true;
+      importacao = null;
+      const [cabecalho = [], ...linhas] = lerCSV(await arquivo.text());
+      try {
+        const r = await api('POST', '/pets/importar', { cabecalho, linhas, simular: true });
+        const conta = s => r.linhas.filter(l => l.status === s).length;
+        exibirImportacao(arquivo.name, cabecalho, linhas, r);
+        $('resumo-import').textContent = `${r.novas} nova(s) · ${conta('ignorada')} ignorada(s) · ${conta('erro')} com erro. Nada foi gravado ainda.`;
+        if (r.novas) {
+          importacao = { cabecalho, linhas };
+          $('confirmar-import').textContent = `INCLUIR ${r.novas} PET(S)`;
+          $('acoes-import').hidden = false;
+        }
+      } catch (err) {
+        // não é um CSV de pets (ex.: relatório de usuários): só exibe o conteúdo
+        exibirImportacao(arquivo.name, cabecalho, linhas, null);
+        $('resumo-import').textContent = `${linhas.length} linha(s). ${err.message}`;
+      }
+      $('importado').scrollIntoView({ behavior: 'smooth' });
     };
 
-    desenhar();
+    // IMPORTAR passo 2: grava de verdade (tudo ou nada)
+    $('confirmar-import').onclick = async () => {
+      if (!importacao) return;
+      $('confirmar-import').disabled = true;
+      try {
+        const r = await api('POST', '/pets/importar', { ...importacao, simular: false });
+        $('resumo-import').textContent = `✅ ${r.novas} pet(s) incluído(s) no banco.`;
+        $('acoes-import').hidden = true;
+        importacao = null;
+        desenhar();
+      } catch (err) { mostrarErro(err); }
+      $('confirmar-import').disabled = false;
+    };
+    $('cancelar-import').onclick = () => { importacao = null; $('importado').hidden = true; };
+
+    desenhar().catch(mostrarErro);
   </script>
 </body>
 </html>

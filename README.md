@@ -31,10 +31,16 @@ Abra http://localhost:3000
 |---|---|
 | Site | `public/` |
 | Banco de dados | `schema.sql` (tabelas `usuarios` e `pets`) |
-| Relatório em CSV | Painel Admin → **Baixar relatório CSV** (`GET /api/relatorio.csv`) |
-| Exibir a importação do relatório | Painel Admin → **Importar relatório CSV** (mostra o arquivo numa tabela) |
-| Termo de uso aceito pelo usuário | Caixa "Li e aceito os termos de uso" no cadastro; a data do aceite fica salva em `usuarios.aceitou_termos_em` |
+| Relatórios em CSV | **Admin:** pets (filtro por status/espécie) e usuários. **Usuário comum:** "Meus pets" e, na Home, a lista de pets disponíveis com os filtros da tela |
+| Exibir a importação do relatório | Painel Admin → **Importar pets (CSV)**: mostra o arquivo numa tabela com o resultado de cada linha e só grava depois de confirmar. Aceita o relatório de pets ou o `modelo-importacao-pets.csv` |
+| Termo de uso aceito pelo usuário | Caixa "Li e aceito o Termo de Aceite e Condições de Uso" no cadastro; a data do aceite fica salva em `usuarios.aceitou_termos_em` |
 | Link para exibir o termo | Rodapé de todas as páginas → `termos.html` |
+
+## Outros recursos
+
+- O dono do pet (ou o admin) pode **editar e excluir** o pet pela página dele
+- CPF/CNPJ, CEP e WhatsApp são formatados enquanto se digita e validados (inclusive dígitos verificadores) no navegador e no servidor — regras em `public/formatos.js`, testes com `npm test`
+- Saúde do servidor e do banco: `GET /api/saude` (pode ser usado como health check no Coolify)
 
 ## Deploy (Coolify)
 

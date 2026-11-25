@@ -15,11 +15,11 @@
       <section class="caixa">
         <h3 class="centro">Dados Fundamentais</h3>
         <label>NOME COMPLETO</label><input id="nome">
-        <label>E-MAIL</label><input id="email" type="email">
-        <label>SENHA</label><input id="senha" type="password">
-        <label>CPF/CNPJ</label><input id="doc">
-        <label>CEP</label><input id="cep">
-        <label>WHATSAPP</label><input id="whats">
+        <label>E-MAIL</label><input id="email" type="email" maxlength="100" autocomplete="email">
+        <label>SENHA <small>(mínimo 6 caracteres)</small></label><input id="senha" type="password" minlength="6" maxlength="100" autocomplete="new-password">
+        <label for="doc">CPF/CNPJ</label><input id="doc" data-mascara="doc" placeholder="000.000.000-00 ou 00.000.000/0000-00">
+        <label for="cep">CEP</label><input id="cep" data-mascara="cep" placeholder="00000-000" autocomplete="postal-code">
+        <label for="whats">WHATSAPP</label><input id="whats" data-mascara="whats" placeholder="(00) 00000-0000" autocomplete="tel-national">
       </section>
 
       <!-- Coluna direita: escolha do perfil + perguntas específicas -->
@@ -72,15 +72,17 @@
       </section>
     </div>
 
-    <p class="centro"><label class="aceite"><input type="checkbox" id="aceite"> Li e aceito os <a href="termos.html" target="_blank">termos de uso</a></label></p>
+    <p class="centro"><label class="aceite"><input type="checkbox" id="aceite"> Li e aceito o <a href="termos.html" target="_blank">Termo de Aceite e Condições de Uso</a></label></p>
     <p class="erro centro" id="erro"></p>
     <p class="centro"><button class="btn" id="continuar">CONTINUAR</button></p>
   </main>
 
+  <script src="formatos.js"></script>
   <script src="app.js"></script>
   <script>
     montarCabecalho('registro');
     ativarOpcoes();
+    ativarMascaras();
     let perfil = '';   // perfil escolhido
 
     // Clicar em um perfil: destaca o cartão e mostra só o painel dele
@@ -100,18 +102,26 @@
       const erro = msg => document.getElementById('erro').textContent = msg;
 
       if (!v('nome') || !v('email') || !v('senha') || !v('doc') || !v('cep') || !v('whats')) return erro('Preencha todos os dados fundamentais.');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v('email'))) return erro('E-mail inválido.');
+      if (document.getElementById('senha').value.length < 6) return erro('A senha precisa ter pelo menos 6 caracteres.');
+      if (!docValido(v('doc'))) return erro('CPF/CNPJ inválido. Confira os números.');
+      if (!cepValido(v('cep'))) return erro('CEP inválido: use 8 dígitos.');
+      if (!whatsValido(v('whats'))) return erro('WhatsApp inválido: informe DDD + número.');
       if (!perfil) return erro('Escolha um perfil.');
 
       const extras = lerOpcoes(document.getElementById('painel-' + perfil));
       if (Object.values(extras).includes('')) return erro('Responda todas as perguntas do perfil.');
       if (extras.termo === 'Não concordo') return erro('É preciso aceitar o termo de adoção para continuar.');
-      if (!document.getElementById('aceite').checked) return erro('É preciso aceitar os termos de uso.');
+      if (!document.getElementById('aceite').checked) return erro('É preciso aceitar o Termo de Aceite e Condições de Uso.');
 
       const usuario = { nome: v('nome'), email: v('email'), senha: v('senha'), doc: v('doc'), cep: v('cep'), whats: v('whats'), perfil, extras, aceitouTermos: true };
+      const botao = document.getElementById('continuar');
+      botao.disabled = true;
       try {
         entrar(await api('POST', '/usuarios', usuario));
       } catch (e) {
         erro(e.message);
+        botao.disabled = false;
       }
     };
   </script>
