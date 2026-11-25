@@ -1,0 +1,28 @@
+# Roda o site + banco no seu computador: docker compose up  ->  http://localhost:3000
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: petmatch
+      POSTGRES_PASSWORD: petmatch
+      POSTGRES_DB: petmatch
+    volumes:
+      - dados:/var/lib/postgresql/data
+    healthcheck:
+      test: pg_isready -U petmatch
+      interval: 2s
+  site:
+    image: node:24-alpine
+    working_dir: /app
+    volumes:
+      - .:/app
+    command: sh -c "npm install && npm start"
+    environment:
+      DATABASE_URL: postgres://petmatch:petmatch@db:5432/petmatch
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+volumes:
+  dados:

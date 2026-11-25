@@ -26,10 +26,9 @@
 
     // Pega o id da URL (animal.html?id=1) e procura o pet
     const id = Number(new URLSearchParams(location.search).get('id'));
-    const pets = ler('pets', []);
-    const pet = pets.find(p => p.id === id);
-    if (!pet) location.href = 'home.html';
+    api('GET', '/pets/' + id).then(mostrar).catch(() => location.href = 'home.html');
 
+    function mostrar(pet) {
     // Preenche a tela com os dados do pet
     document.getElementById('codigo').textContent = '#' + String(pet.id).padStart(4, '0');
     document.getElementById('nome').textContent = pet.nome;
@@ -42,19 +41,21 @@
       ['⚧', 'Sexo', pet.sexo], ['💉', 'Vacinação', pet.vacinacao], ['✂️', 'Situação', pet.situacao],
       ['🧬', 'Espécie', pet.especie], ['📍', 'Cidade', pet.cidade], ['👤', 'Tutor', pet.tutor]
     ];
-    document.getElementById('info').innerHTML = dados.map(d => `<div><span class="icone">${d[0]}</span>${d[1]}:<br>${d[2]}</div>`).join('');
+    document.getElementById('info').innerHTML = dados.map(d => `<div><span class="icone">${d[0]}</span>${d[1]}:<br>${esc(d[2])}</div>`).join('');
 
     // Botão ADOTAR: confirma e marca o pet como adotado (some da home)
     const botao = document.getElementById('adotar');
     if (pet.adotado) { botao.disabled = true; botao.textContent = 'JÁ ADOTADO'; }
     if (pet.tutorEmail === usuarioLogado().email) botao.style.display = 'none';   // não adota o próprio pet
-    botao.onclick = () => {
+    botao.onclick = async () => {
       if (!confirm('Deseja adotar ' + pet.nome + '?')) return;
-      pet.adotado = true;
-      salvar('pets', pets);
-      alert('Pedido enviado! O tutor (' + pet.tutor + ') entrará em contato.');
-      location.href = 'home.html';
+      try {
+        await api('POST', '/pets/' + pet.id + '/adotar');
+        alert('Pedido enviado! O tutor (' + pet.tutor + ') entrará em contato.');
+        location.href = 'home.html';
+      } catch (e) { alert(e.message); }
     };
+    }
   </script>
 </body>
 </html>

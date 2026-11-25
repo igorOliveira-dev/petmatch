@@ -41,14 +41,12 @@
     exigirLogin();
     montarCabecalho('logado');
     const $ = id => document.getElementById(id);
-    const pets = ler('pets', []);
 
-    // Novo código do pet: maior id + 1, mostrado como #0006
-    const novoId = pets.reduce((m, p) => Math.max(m, p.id), 0) + 1;
-    $('codigo').textContent = '#' + String(novoId).padStart(4, '0');
+    // O código do pet (#0007) é gerado pelo banco quando salvar
+    $('codigo').textContent = 'NOVO PET';
     $('tutor').value = usuarioLogado().nome;   // já preenche o tutor com quem está logado
 
-    // Foto: lê o arquivo, reduz para 500px (para caber no localStorage) e mostra
+    // Foto: lê o arquivo, reduz para 500px (para o envio ficar leve) e mostra
     let foto = '';
     $('arquivo').onchange = e => {
       const leitor = new FileReader();
@@ -69,17 +67,19 @@
     };
 
     // SALVAR REGISTRO: valida e guarda o pet
-    $('salvar').onclick = () => {
+    $('salvar').onclick = async () => {
       const campos = ['nome', 'idade', 'peso', 'temperamento', 'cidade', 'tutor'];
       if (campos.some(c => !$(c).value.trim())) { $('erro').textContent = 'Preencha todos os campos.'; return; }
-      pets.push({
-        id: novoId, foto, adotado: false, tutorEmail: usuarioLogado().email,
+      const pet = {
+        foto,
         nome: $('nome').value.trim(), idade: Number($('idade').value), peso: Number($('peso').value),
         temperamento: $('temperamento').value.trim(), sexo: $('sexo').value, vacinacao: $('vacinacao').value,
         situacao: $('situacao').value, especie: $('especie').value, cidade: $('cidade').value.trim(), tutor: $('tutor').value.trim()
-      });
-      salvar('pets', pets);
-      location.href = 'meus-pets.html';
+      };
+      try {
+        await api('POST', '/pets', pet);
+        location.href = 'meus-pets.html';
+      } catch (e) { $('erro').textContent = e.message; }
     };
   </script>
 </body>

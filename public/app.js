@@ -1,49 +1,31 @@
 /* =====================================================
    app.js - funções usadas por TODAS as telas
-   Os dados ficam no localStorage do navegador (sem servidor).
+   Os dados ficam no banco PostgreSQL (via server.js).
+   No navegador fica só a sessão (quem está logado).
    ===================================================== */
 
-/* --- Ler e salvar dados no localStorage --- */
-function ler(chave, padrao) {
-  const texto = localStorage.getItem(chave);
-  return texto ? JSON.parse(texto) : padrao;
-}
-function salvar(chave, valor) {
-  localStorage.setItem(chave, JSON.stringify(valor));
-}
-
-/* --- Pets de exemplo (só criados na primeira vez que o site abre) --- */
-if (!localStorage.getItem("pets")) {
-  const base = {
-    vacinacao: "Vacinado",
-    situacao: "Castrado",
-    especie: "Cachorro",
-    cidade: "São Manuel",
-    tutor: "Liga do bem",
-    tutorEmail: "",
-    foto: "",
-    adotado: false,
-  };
-  salvar("pets", [
-    { ...base, id: 1, nome: "Luiz", idade: 3, peso: 45, temperamento: "Arisco", sexo: "Macho" },
-    { ...base, id: 2, nome: "Pipoca", idade: 2, peso: 4, temperamento: "Brincalhona", sexo: "Fêmea" },
-    { ...base, id: 3, nome: "Timão", idade: 1, peso: 30, temperamento: "Sociável", sexo: "Macho" },
-    { ...base, id: 4, nome: "Destruidor", idade: 5, peso: 22, temperamento: "Agitado", sexo: "Macho" },
-    { ...base, id: 5, nome: "Jurema", idade: 0, peso: 8, temperamento: "Dócil", sexo: "Fêmea" },
-    { ...base, id: 6, nome: "Mel", idade: 8, peso: 28, temperamento: "Calma", sexo: "Fêmea" },
-  ]);
-}
-
-/* --- Administrador padrão (criado automaticamente, não passa pela tela de registro) --- */
-const usuariosSalvos = ler("usuarios", []);
-if (!usuariosSalvos.some((u) => u.perfil === "admin")) {
-  usuariosSalvos.push({ nome: "Administrador", email: "admin@petmatch.com", senha: "admin123", perfil: "admin" });
-  salvar("usuarios", usuariosSalvos);
+/* --- Conversa com o servidor --- */
+async function api(metodo, caminho, corpo) {
+  const sessao = usuarioLogado();
+  const resp = await fetch("/api" + caminho, {
+    method: metodo,
+    headers: { "Content-Type": "application/json", Authorization: sessao ? sessao.token : "" },
+    body: corpo ? JSON.stringify(corpo) : undefined,
+  });
+  if (resp.status === 401 && sessao) sair(); // token vencido: volta pro login
+  if (resp.status === 204) return null;
+  const dados = resp.headers.get("content-type")?.includes("json") ? await resp.json() : null;
+  if (!resp.ok) throw new Error((dados && dados.erro) || "Erro no servidor.");
+  return dados;
 }
 
 /* --- Sessão: quem está logado --- */
 function usuarioLogado() {
-  return ler("sessao", null);
+  try { return JSON.parse(localStorage.getItem("sessao")); } catch { return null; }
+}
+function entrar(sessao) {
+  localStorage.setItem("sessao", JSON.stringify(sessao));
+  location.href = "home.html";
 }
 function exigirLogin() {
   // chame no topo das telas privadas
@@ -59,7 +41,12 @@ function sair() {
   location.href = "index.html";
 }
 
-/* --- Cabeçalho: cada tela pede um "modo" --- */
+/* --- Evita que textos digitados por usuários virem HTML --- */
+function esc(v) {
+  return String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+}
+
+/* --- Cabeçalho: cada tela pede um "modo". Também coloca o rodapé com o link dos termos --- */
 function montarCabecalho(modo) {
   let botoes = "";
   if (modo === "registro") botoes = '<a class="btn" href="index.html">FAZER LOGIN</a>';
@@ -71,9 +58,10 @@ function montarCabecalho(modo) {
       '<a class="btn" href="meus-pets.html">MEUS PETS</a>' +
       '<button class="btn" onclick="sair()">SAIR</button>';
   document.getElementById("cabecalho").innerHTML =
-    '<header class="topo"><a class="logo" href="home.html"><img src="./public/logo.jpeg"></img></a><nav>' +
+    '<header class="topo"><a class="logo" href="home.html"><img src="logo.jpeg" alt="PetMatch"></a><nav>' +
     botoes +
     "</nav></header>";
+  document.body.insertAdjacentHTML("beforeend", '<footer class="rodape"><a href="termos.html">Termos de uso</a></footer>');
 }
 
 /* --- Grupos de botões de escolha (ex.: SIM / NÃO) --- */
@@ -98,10 +86,10 @@ function lerOpcoes(painel) {
 
 /* --- Estilo de foto (usa a foto do pet ou uma patinha) --- */
 function fotoStyle(pet) {
-  return pet.foto ? `style="background-image:url('${pet.foto}')"` : "";
+  return pet.foto ? `style="background-image:url('${esc(pet.foto)}')"` : "";
 }
 
 /* --- Cartão de pet (usado na home e em "meus pets") --- */
 function cartaoPet(pet) {
-  return `<a class="pet" href="animal.html?id=${pet.id}" ${fotoStyle(pet)}>${pet.foto ? "" : "🐾"}<span>${pet.nome}</span></a>`;
+  return `<a class="pet" href="animal.html?id=${pet.id}" ${fotoStyle(pet)}>${pet.foto ? "" : "🐾"}<span>${esc(pet.nome)}</span></a>`;
 }

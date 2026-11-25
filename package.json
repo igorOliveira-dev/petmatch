@@ -1,0 +1,25 @@
+{
+  "name": "petmatch",
+  "version": "1.0.0",
+  "description": "PetMatch - site de adoção de animais",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/igorOliveira-dev/petmatch.git"
+  },
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/igorOliveira-dev/petmatch/issues"
+  },
+  "homepage": "https://github.com/igorOliveira-dev/petmatch#readme",
+  "dependencies": {
+    "express": "^5.3.0",
+    "pg": "^8.23.1"
+  },
+  "engines": {
+    "node": ">=20.12"
+  }
+}

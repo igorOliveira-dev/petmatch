@@ -72,6 +72,7 @@
       </section>
     </div>
 
+    <p class="centro"><label class="aceite"><input type="checkbox" id="aceite"> Li e aceito os <a href="termos.html" target="_blank">termos de uso</a></label></p>
     <p class="erro centro" id="erro"></p>
     <p class="centro"><button class="btn" id="continuar">CONTINUAR</button></p>
   </main>
@@ -94,25 +95,24 @@
     });
 
     // Botão CONTINUAR: valida, salva o usuário e entra no site
-    document.getElementById('continuar').onclick = () => {
+    document.getElementById('continuar').onclick = async () => {
       const v = id => document.getElementById(id).value.trim();
       const erro = msg => document.getElementById('erro').textContent = msg;
 
       if (!v('nome') || !v('email') || !v('senha') || !v('doc') || !v('cep') || !v('whats')) return erro('Preencha todos os dados fundamentais.');
       if (!perfil) return erro('Escolha um perfil.');
 
-      const usuarios = ler('usuarios', []);
-      if (usuarios.some(u => u.email === v('email'))) return erro('Este e-mail já está cadastrado.');
-
       const extras = lerOpcoes(document.getElementById('painel-' + perfil));
       if (Object.values(extras).includes('')) return erro('Responda todas as perguntas do perfil.');
       if (extras.termo === 'Não concordo') return erro('É preciso aceitar o termo de adoção para continuar.');
+      if (!document.getElementById('aceite').checked) return erro('É preciso aceitar os termos de uso.');
 
-      const usuario = { nome: v('nome'), email: v('email'), senha: v('senha'), doc: v('doc'), cep: v('cep'), whats: v('whats'), perfil, extras };
-      usuarios.push(usuario);
-      salvar('usuarios', usuarios);
-      salvar('sessao', usuario);
-      location.href = 'home.html';
+      const usuario = { nome: v('nome'), email: v('email'), senha: v('senha'), doc: v('doc'), cep: v('cep'), whats: v('whats'), perfil, extras, aceitouTermos: true };
+      try {
+        entrar(await api('POST', '/usuarios', usuario));
+      } catch (e) {
+        erro(e.message);
+      }
     };
   </script>
 </body>

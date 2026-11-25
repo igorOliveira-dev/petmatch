@@ -36,7 +36,8 @@
     exigirLogin();
     montarCabecalho('logado');
 
-    let quantidade = 6;   // quantos pets aparecem (aumenta de 6 em 6)
+    let quantidade = 6;
+    let pets = [];        // vem do servidor   // quantos pets aparecem (aumenta de 6 em 6)
     const $ = id => document.getElementById(id);
 
     // Descobre o tamanho e a faixa de idade de um pet
@@ -45,7 +46,7 @@
 
     // Aplica os filtros e desenha os cartões
     function mostrar() {
-      const lista = ler('pets', []).filter(p =>
+      const lista = pets.filter(p =>
         !p.adotado &&
         (!$('f-especie').value || p.especie === $('f-especie').value) &&
         (!$('f-sexo').value || p.sexo === $('f-sexo').value) &&
@@ -59,7 +60,7 @@
 
     document.querySelectorAll('select').forEach(s => s.onchange = () => { quantidade = 6; mostrar(); });
     $('mais').onclick = () => { quantidade += 6; mostrar(); };
-    mostrar();
+    api('GET', '/pets').then(r => { pets = r; mostrar(); }).catch(e => $('aviso').textContent = e.message);
   </script>
 </body>
 </html>

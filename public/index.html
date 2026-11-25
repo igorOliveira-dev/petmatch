@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PetMatch - Login</title>
-  <link href="" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -27,16 +27,14 @@
     montarCabecalho('nenhum');
 
     // Botão ENTRAR: procura um usuário com o e-mail e senha digitados
-    document.getElementById('entrar').onclick = () => {
+    document.getElementById('entrar').onclick = async () => {
       const email = document.getElementById('email').value.trim();
       const senha = document.getElementById('senha').value;
-      const usuario = ler('usuarios', []).find(u => u.email === email && u.senha === senha);
-      if (!usuario) {
-        document.getElementById('erro').textContent = 'E-mail ou senha incorretos.';
-        return;
+      try {
+        entrar(await api('POST', '/login', { email, senha }));   // guarda quem entrou e vai pra home
+      } catch (e) {
+        document.getElementById('erro').textContent = e.message;
       }
-      salvar('sessao', usuario);      // guarda quem entrou
-      location.href = 'home.html';
     };
 
     // Link "esqueci minha senha" (só um aviso; um site real enviaria e-mail)

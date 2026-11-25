@@ -311,3 +311,22 @@ select {
 .rolagem {
   overflow-x: auto;
 }
+
+/* ===== TERMOS DE USO ===== */
+.rodape {
+  text-align: center;
+  padding: 24px;
+  font-size: 13px;
+}
+.rodape a,
+.aceite a {
+  color: var(--azul);
+}
+.aceite {
+  cursor: pointer;
+}
+.termos {
+  max-width: 800px;
+  margin: 0 auto;
+  line-height: 1.6;
+}

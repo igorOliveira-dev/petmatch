@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PetMatch - Administração</title>
+  <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="cabecalho"></div>
+  <main>
+    <h2>Painel do Administrador</h2>
+
+    <!-- Relatório: baixar do banco e importar um CSV para visualizar -->
+    <h3>Relatório de pets</h3>
+    <p>
+      <button class="btn" id="baixar">BAIXAR RELATÓRIO CSV</button>
+      <label class="btn btn-claro">IMPORTAR RELATÓRIO CSV<input type="file" id="importar" accept=".csv,text/csv" hidden></label>
+    </p>
+    <p class="erro" id="erro"></p>
+    <div id="importado" style="display:none">
+      <p><b id="nome-arquivo"></b></p>
+      <div class="rolagem"><table class="tabela" id="tab-importado"></table></div>
+    </div>
+
+    <!-- Tabela de usuários -->
+    <h3>Usuários</h3>
+    <div class="rolagem"><table class="tabela" id="tab-usuarios"></table></div>
+
+    <!-- Tabela de pets -->
+    <h3>Pets</h3>
+    <div class="rolagem"><table class="tabela" id="tab-pets"></table></div>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    exigirAdmin();              // bloqueia quem não é admin
+    montarCabecalho('logado');
+    const $ = id => document.getElementById(id);
+    const data = d => d ? new Date(d).toLocaleString('pt-BR') : '-';
+
+    // Desenha as duas tabelas com os dados atuais do banco
+    async function desenhar() {
+      const [usuarios, pets] = await Promise.all([api('GET', '/usuarios'), api('GET', '/pets')]);
+
+      // Usuários: o admin não tem botão de excluir (evita se apagar por engano)
+      $('tab-usuarios').innerHTML =
+        '<tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>WhatsApp</th><th>Aceitou os termos em</th><th></th></tr>' +
+        usuarios.map(u => `<tr>
+          <td>${esc(u.nome)}</td><td>${esc(u.email)}</td><td>${esc(u.perfil)}</td><td>${esc(u.whats || '-')}</td><td>${data(u.aceitou_termos_em)}</td>
+          <td>${u.perfil === 'admin' ? '' : `<button class="btn btn-perigo" data-email="${esc(u.email)}" onclick="excluirUsuario(this.dataset.email)">Excluir</button>`}</td>
+        </tr>`).join('');
+
+      // Pets: mostra status e permite excluir
+      $('tab-pets').innerHTML =
+        '<tr><th>Código</th><th>Nome</th><th>Espécie</th><th>Tutor</th><th>Status</th><th></th></tr>' +
+        pets.map(p => `<tr>
+          <td>#${String(p.id).padStart(4, '0')}</td><td>${esc(p.nome)}</td><td>${esc(p.especie)}</td><td>${esc(p.tutor)}</td>
+          <td>${p.adotado ? 'Adotado' : 'Disponível'}</td>
+          <td><button class="btn btn-perigo" onclick="excluirPet(${p.id})">Excluir</button></td>
+        </tr>`).join('');
+    }
+
+    // Excluir usuário (o banco apaga os pets dele junto)
+    async function excluirUsuario(email) {
+      if (!confirm('Excluir este usuário e os pets dele?')) return;
+      await api('DELETE', '/usuarios/' + encodeURIComponent(email));
+      desenhar();
+    }
+
+    // Excluir pet
+    async function excluirPet(id) {
+      if (!confirm('Excluir este pet?')) return;
+      await api('DELETE', '/pets/' + id);
+      desenhar();
+    }
+
+    // BAIXAR: pede o CSV ao servidor (com o token) e salva como arquivo
+    $('baixar').onclick = async () => {
+      const resp = await fetch('/api/relatorio.csv', { headers: { Authorization: usuarioLogado().token } });
+      if (!resp.ok) return $('erro').textContent = 'Não foi possível gerar o relatório.';
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(await resp.blob());
+      link.download = 'relatorio-pets.csv';
+      link.click();
+      URL.revokeObjectURL(link.href);
+    };
+
+    // Lê um texto CSV (separador ";" ou ",", com campos entre aspas) e devolve linhas de colunas
+    function lerCSV(texto) {
+      texto = texto.replace(/^﻿/, '');
+      const sep = texto.split('\n')[0].includes(';') ? ';' : ',';
+      const linhas = [];
+      let linha = [], campo = '', aspas = false;
+      for (let i = 0; i < texto.length; i++) {
+        const c = texto[i];
+        if (aspas) {
+          if (c === '"' && texto[i + 1] === '"') { campo += '"'; i++; }
+          else if (c === '"') aspas = false;
+          else campo += c;
+        }
+        else if (c === '"') aspas = true;
+        else if (c === sep) { linha.push(campo); campo = ''; }
+        else if (c === '\n') { linha.push(campo); linhas.push(linha); linha = []; campo = ''; }
+        else if (c !== '\r') campo += c;
+      }
+      if (campo || linha.length) { linha.push(campo); linhas.push(linha); }
+      return linhas;
+    }
+
+    // IMPORTAR: abre um CSV do computador e exibe numa tabela
+    $('importar').onchange = async e => {
+      const arquivo = e.target.files[0];
+      if (!arquivo) return;
+      const [cabeca = [], ...linhas] = lerCSV(await arquivo.text());
+      $('nome-arquivo').textContent = `${arquivo.name} — ${linhas.length} registro(s) importado(s)`;
+      $('tab-importado').innerHTML =
+        '<tr>' + cabeca.map(c => `<th>${esc(c)}</th>`).join('') + '</tr>' +
+        linhas.map(l => '<tr>' + l.map(c => `<td>${esc(c)}</td>`).join('') + '</tr>').join('');
+      $('importado').style.display = 'block';
+      e.target.value = '';   // permite importar o mesmo arquivo de novo
+    };
+
+    desenhar();
+  </script>
+</body>
+</html>
