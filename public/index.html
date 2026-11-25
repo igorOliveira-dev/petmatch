@@ -12,6 +12,7 @@
   <!-- Formulário de login -->
   <main class="login"><form id="form-login">
     <h2>LOGIN</h2>
+    <p class="aviso" id="msg-verificacao" hidden></p>
     <label>E-MAIL</label>
     <input type="email" id="email" placeholder="Digite o E-Mail" autocomplete="username" required>
     <label>SENHA</label>
@@ -27,7 +28,15 @@
     montarCabecalho('nenhum');
 
     // Botão ENTRAR: procura um usuário com o e-mail e senha digitados
-    if (usuarioLogado()) location.href = 'home.html';   // já está logado
+    // volta do link de confirmação de e-mail
+    const verificado = new URLSearchParams(location.search).get('verificado');
+    if (verificado !== null) {
+      const msg = document.getElementById('msg-verificacao');
+      msg.hidden = false;
+      msg.innerHTML = verificado === '1'
+        ? '✅ E-mail confirmado! ' + (usuarioLogado() ? '<a href="home.html">Continuar</a>' : 'Faça login para continuar.')
+        : 'O link de confirmação é inválido ou expirou. Entre e peça um novo em Meus dados.';
+    } else if (usuarioLogado()) location.href = 'home.html';   // já está logado
     document.getElementById('form-login').onsubmit = async e => {
       e.preventDefault();
       const email = document.getElementById('email').value.trim();

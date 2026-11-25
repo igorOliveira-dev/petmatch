@@ -20,6 +20,7 @@
         <label for="doc">CPF/CNPJ</label><input id="doc" data-mascara="doc" placeholder="000.000.000-00 ou 00.000.000/0000-00">
         <label for="cep">CEP</label><input id="cep" data-mascara="cep" placeholder="00000-000" autocomplete="postal-code">
         <label for="whats">WHATSAPP</label><input id="whats" data-mascara="whats" placeholder="(00) 00000-0000" autocomplete="tel-national">
+        <label for="nascimento">DATA DE NASCIMENTO <small>(do responsável, se for instituição)</small></label><input id="nascimento" type="date" autocomplete="bday">
       </section>
 
       <!-- Coluna direita: escolha do perfil + perguntas específicas -->
@@ -55,6 +56,8 @@
           <div class="opcoes" data-nome="sociabilidade"><button type="button">Sociável</button><button type="button">Arisco</button><button type="button">Bravo</button></div>
           <p>Exige termo de adoção?</p>
           <div class="opcoes" data-nome="termo"><button type="button">Sim, assinado</button><button type="button">Não exijo</button></div>
+          <p>Documentação para homologação da parceria <small>(PDF, JPG ou PNG até 2 MB — pode enviar depois em Meus dados)</small>:</p>
+          <input type="file" class="documento" accept="application/pdf,image/jpeg,image/png">
         </div>
 
         <!-- Perguntas da INSTITUIÇÃO -->
@@ -68,6 +71,8 @@
           <div class="opcoes" data-nome="ajuda"><button type="button">Doação recorrente</button><button type="button">Pix e cartão</button><button type="button">Outros</button></div>
           <p>Aceita termo de adoção?</p>
           <div class="opcoes" data-nome="termo"><button type="button">Sim, concordo</button><button type="button">Não concordo</button></div>
+          <p>Documentação para homologação da parceria <small>(PDF, JPG ou PNG até 2 MB — pode enviar depois em Meus dados)</small>:</p>
+          <input type="file" class="documento" accept="application/pdf,image/jpeg,image/png">
         </div>
       </section>
     </div>
@@ -77,7 +82,7 @@
     <p class="centro"><button class="btn" id="continuar">CONTINUAR</button></p>
   </main>
 
-  <script src="formatos.js"></script>
+  <script src="regras.js"></script>
   <script src="app.js"></script>
   <script>
     montarCabecalho('registro');
@@ -107,6 +112,7 @@
       if (!docValido(v('doc'))) return erro('CPF/CNPJ inválido. Confira os números.');
       if (!cepValido(v('cep'))) return erro('CEP inválido: use 8 dígitos.');
       if (!whatsValido(v('whats'))) return erro('WhatsApp inválido: informe DDD + número.');
+      if (!nascimentoValido(v('nascimento'))) return erro('Informe uma data de nascimento válida.');
       if (!perfil) return erro('Escolha um perfil.');
 
       const extras = lerOpcoes(document.getElementById('painel-' + perfil));
@@ -114,7 +120,14 @@
       if (extras.termo === 'Não concordo') return erro('É preciso aceitar o termo de adoção para continuar.');
       if (!document.getElementById('aceite').checked) return erro('É preciso aceitar o Termo de Aceite e Condições de Uso.');
 
-      const usuario = { nome: v('nome'), email: v('email'), senha: v('senha'), doc: v('doc'), cep: v('cep'), whats: v('whats'), perfil, extras, aceitouTermos: true };
+      const usuario = { nome: v('nome'), email: v('email'), senha: v('senha'), doc: v('doc'), cep: v('cep'), whats: v('whats'), nascimento: v('nascimento'), perfil, extras, aceitouTermos: true };
+      // documentação da parceria (opcional no cadastro)
+      const arquivo = document.querySelector('#painel-' + perfil + ' .documento')?.files[0];
+      if (arquivo) {
+        if (erroDocumento(arquivo)) return erro(erroDocumento(arquivo));
+        usuario.documento = await lerArquivo(arquivo);
+        usuario.documentoNome = arquivo.name;
+      }
       const botao = document.getElementById('continuar');
       botao.disabled = true;
       try {

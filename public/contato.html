@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PetMatch - Contato e denúncias</title>
+  <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="cabecalho"></div>
+  <main class="estreito">
+    <h2>Contato e denúncias</h2>
+    <p class="dica">Dúvidas, sugestões ou anúncios irregulares (venda de animais, informações falsas, maus-tratos). A administração analisa todas as mensagens.</p>
+
+    <form class="caixa" id="form" novalidate>
+      <span class="rotulo">Tipo de mensagem</span>
+      <div class="opcoes" data-nome="tipo"><button type="button" data-valor="contato">Contato / dúvida</button><button type="button" data-valor="denuncia">Denunciar anúncio</button></div>
+
+      <div id="bloco-pet" hidden>
+        <label for="pet">Código do pet denunciado <small>(opcional)</small></label>
+        <input id="pet" inputmode="numeric" maxlength="9" placeholder="Ex.: 12">
+      </div>
+
+      <label for="nome">Seu nome</label><input id="nome" maxlength="100" autocomplete="name">
+      <label for="email">Seu e-mail (para resposta)</label><input id="email" type="email" maxlength="100" autocomplete="email">
+      <label for="mensagem">Mensagem</label><textarea id="mensagem" rows="6" maxlength="2000" placeholder="Conte o que aconteceu"></textarea>
+      <!-- campo invisível: pessoas não preenchem, robôs de spam sim -->
+      <input id="site" name="site" tabindex="-1" autocomplete="off" class="escondido" aria-hidden="true">
+      <p class="erro" id="erro" role="alert"></p>
+      <button class="btn" id="enviar" type="submit">ENVIAR</button>
+    </form>
+    <p class="aviso" id="enviado" hidden>✅ Mensagem enviada! Obrigado — a administração vai analisar.</p>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    montarCabecalho(usuarioLogado() ? 'logado' : 'registro');
+    ativarOpcoes();
+    const $ = id => document.getElementById(id);
+    const grupo = document.querySelector('.opcoes[data-nome="tipo"]');
+    const tipo = () => grupo.querySelector('.ativo')?.dataset.valor || '';
+    const mostrarPet = () => $('bloco-pet').hidden = tipo() !== 'denuncia';
+    grupo.addEventListener('click', mostrarPet);
+    $('pet').addEventListener('input', () => $('pet').value = $('pet').value.replace(/\D/g, ''));
+
+    // vindo de "Denunciar anúncio" na página do pet: contato.html?tipo=denuncia&pet=12
+    const q = new URLSearchParams(location.search);
+    marcarOpcao(grupo, q.get('tipo') === 'denuncia' ? 'Denunciar anúncio' : 'Contato / dúvida');
+    if (q.get('pet')) $('pet').value = q.get('pet').replace(/\D/g, '');
+    mostrarPet();
+    const u = usuarioLogado();
+    if (u) { $('nome').value = u.nome; $('email').value = u.email; }
+
+    $('form').onsubmit = async e => {
+      e.preventDefault();
+      const dados = { tipo: tipo(), nome: $('nome').value.trim(), email: $('email').value.trim(), mensagem: $('mensagem').value.trim(),
+                      petId: tipo() === 'denuncia' ? $('pet').value : '', site: $('site').value };
+      const erro = !dados.nome ? 'Informe seu nome.' : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dados.email) ? 'Informe um e-mail válido.'
+        : dados.mensagem.length < 10 ? 'Escreva a mensagem (pelo menos 10 caracteres).' : '';
+      if (erro) return $('erro').textContent = erro;
+      $('enviar').disabled = true;
+      try {
+        await api('POST', '/mensagens', dados);
+        $('form').hidden = true;
+        $('enviado').hidden = false;
+      } catch (err) { $('erro').textContent = err.message; $('enviar').disabled = false; }
+    };
+  </script>
+</body>
+</html>

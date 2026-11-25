@@ -90,6 +90,12 @@
           <input id="tutor" maxlength="60">
           <small class="msg"></small>
         </div>
+
+        <div class="campo largo">
+          <label for="taxa">💰 Taxa de castração/vacinação <small>(deixe vazio se não houver)</small></label>
+          <input id="taxa" data-mascara="dinheiro" placeholder="R$ 0,00">
+          <small class="msg"></small>
+        </div>
       </div>
     </form>
 
@@ -100,11 +106,13 @@
     </p>
   </main>
 
+  <script src="regras.js"></script>
   <script src="app.js"></script>
   <script>
     exigirLogin();
     montarCabecalho('logado');
     ativarOpcoes();
+    ativarMascaras();
     const $ = id => document.getElementById(id);
     const editarId = Number(new URLSearchParams(location.search).get('id')) || 0;
     let foto = '';           // data URL da foto (ou '' sem foto)
@@ -122,6 +130,7 @@
       temperamento: v => v ? '' : 'Descreva o temperamento.',
       cidade: v => v ? '' : 'Informe a cidade.',
       tutor: v => v ? '' : 'Informe o tutor.',
+      taxa: v => valorDinheiro(v) > 99999.99 ? 'Valor alto demais.' : '',
     };
     const grupo = nome => document.querySelector(`.opcoes[data-nome="${nome}"]`);
     const escolha = nome => grupo(nome).querySelector('.ativo')?.textContent || '';
@@ -196,12 +205,19 @@
         const eu = usuarioLogado();
         if (pet.tutorEmail !== eu.email && eu.perfil !== 'admin') return location.href = 'animal.html?id=' + editarId;
         Object.keys(regras).forEach(n => $(n).value = pet[n]);
+        $('taxa').value = pet.taxa > 0 ? dinheiro(pet.taxa) : '';
         ESCOLHAS.forEach(n => marcarOpcao(grupo(n), pet[n]));
         mostrarFoto(pet.foto);
         $('salvar').disabled = false;
       }).catch(e => { $('erro').textContent = e.message; });
     } else {
       $('tutor').value = usuarioLogado().nome;   // já preenche o tutor com quem está logado
+      // só ONGs e protetores homologados (ou o admin) cadastram animais
+      document.addEventListener('eu', ({ detail: eu }) => {
+        if (eu.podeRegistrarPets) return;
+        alert('Somente ONGs e protetores homologados podem cadastrar animais. Envie sua documentação em Meus dados.');
+        location.href = 'perfil.html';
+      });
     }
 
     /* ---------- Salvar ---------- */
@@ -219,6 +235,7 @@
         foto,
         nome: $('nome').value.trim(), idade: Number($('idade').value), peso: Number($('peso').value),
         temperamento: $('temperamento').value.trim(), cidade: $('cidade').value.trim(), tutor: $('tutor').value.trim(),
+        taxa: valorDinheiro($('taxa').value),
         ...Object.fromEntries(ESCOLHAS.map(n => [n, escolha(n)])),
       };
       salvando = true;

@@ -97,7 +97,8 @@ label {
   font-size: 15px;
 }
 input,
-select {
+select,
+textarea {
   width: 100%;
   padding: 10px;
   background: var(--campo);
@@ -510,4 +511,144 @@ select:focus-visible {
   .relatorios {
     grid-template-columns: 1fr;
   }
+}
+
+/* ===== AVISOS, SELOS E BOTÕES EXTRAS ===== */
+.aviso {
+  background: #fff6d6;
+  border: 1px solid #e8d48a;
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin: 10px auto;
+  max-width: 960px;
+  font-size: 14px;
+}
+#avisos .aviso {
+  margin: 10px 16px;
+}
+@media (min-width: 992px) {
+  #avisos .aviso {
+    margin: 10px auto;
+  }
+}
+.aviso a {
+  color: var(--azul);
+}
+.aviso .btn {
+  margin-left: 6px;
+}
+.erro.sucesso {
+  color: #1b6e2a;
+}
+.btn-sucesso {
+  background: #1b6e2a;
+}
+.selo {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  background: #ddd;
+  white-space: nowrap;
+}
+.selo-em_analise { background: #fff1c2; }
+.selo-entrevista { background: #d6e6ff; }
+.selo-aprovada { background: #cfeed6; }
+.selo-reprovada { background: #f6d2d7; }
+.selo-cancelada { background: #e4e4e4; color: #666; }
+.contador {
+  background: #b00020;
+  color: #fff;
+  border-radius: 10px;
+  padding: 0 8px;
+  font-size: 13px;
+}
+.contador:empty {
+  display: none;
+}
+textarea {
+  resize: vertical;
+}
+hr {
+  border: 0;
+  border-top: 1px solid var(--borda);
+  margin: 20px 0;
+}
+.estreito {
+  max-width: 640px;
+}
+.escondido {
+  position: absolute;
+  left: -9999px;
+}
+.link-discreto {
+  color: #777;
+  font-size: 13px;
+}
+h3.inline {
+  display: inline;
+}
+details summary {
+  cursor: pointer;
+  margin: 16px 0 8px;
+}
+
+/* ===== SOLICITAÇÕES ===== */
+.lista-solicitacoes {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.solicitacao p {
+  margin: 6px 0;
+}
+.solicitacao a {
+  color: var(--azul);
+}
+.solicitacao.atrasada {
+  border-color: #b00020;
+}
+.respostas {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.acoes-solicitacao {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--borda);
+}
+.acoes-solicitacao label {
+  margin-top: 0;
+  font-size: 13px;
+}
+.acoes-solicitacao .btn {
+  margin-top: 6px;
+}
+.questionario {
+  margin-top: 24px;
+}
+.questionario .campo {
+  margin-bottom: 6px;
+}
+.questionario .rotulo {
+  display: block;
+  margin: 12px 0 4px;
+  font-weight: 700;
+  font-size: 14px;
+}
+.campo.invalido textarea {
+  outline: 2px solid #b00020;
+}
+
+/* ===== ADMIN: linhas especiais ===== */
+.tabela tr.resolvida,
+.tabela tr.suspenso {
+  color: #888;
+}
+.texto-longo {
+  max-width: 340px;
+  white-space: pre-wrap;
 }

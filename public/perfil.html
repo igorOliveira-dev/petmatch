@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PetMatch - Meus dados</title>
+  <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="cabecalho"></div>
+  <main>
+    <h2>Meus dados</h2>
+    <p class="dica">Conforme a LGPD, aqui você pode consultar, corrigir, exportar e excluir os seus dados pessoais.</p>
+
+    <div class="duas-colunas">
+      <!-- Situação da conta -->
+      <section class="caixa">
+        <h3>Situação da conta</h3>
+        <p><b>Perfil:</b> <span id="s-perfil"></span></p>
+        <p><b>E-mail:</b> <span id="s-email"></span></p>
+        <p><b>Termo de uso:</b> <span id="s-termo"></span></p>
+        <div id="bloco-parceria" hidden>
+          <p><b>Parceria (ONG/protetor):</b> <span id="s-parceria"></span></p>
+          <p class="dica">Somente ONGs e protetores homologados pela administração podem cadastrar animais.
+            Envie um documento que comprove sua atuação (CNPJ/estatuto da ONG, ou documento com foto e comprovante de atuação como protetor).</p>
+          <label class="btn btn-claro btn-pequeno">📎 ENVIAR DOCUMENTAÇÃO<input type="file" id="documento" accept="application/pdf,image/jpeg,image/png" hidden></label>
+          <p class="erro" id="erro-doc" role="alert"></p>
+        </div>
+      </section>
+
+      <!-- Corrigir dados -->
+      <section class="caixa">
+        <h3>Dados pessoais</h3>
+        <form id="form-dados" novalidate>
+          <label for="nome">Nome completo</label><input id="nome" maxlength="100" autocomplete="name">
+          <label for="email">E-mail <small>(não pode ser alterado)</small></label><input id="email" disabled>
+          <label for="doc">CPF/CNPJ</label><input id="doc" data-mascara="doc">
+          <label for="cep">CEP</label><input id="cep" data-mascara="cep" autocomplete="postal-code">
+          <label for="whats">WhatsApp</label><input id="whats" data-mascara="whats" autocomplete="tel-national">
+          <label for="nascimento">Data de nascimento</label><input id="nascimento" type="date">
+          <p class="erro" id="erro-dados" role="alert"></p>
+          <button class="btn" type="submit">SALVAR DADOS</button>
+        </form>
+      </section>
+
+      <!-- Senha -->
+      <section class="caixa">
+        <h3>Alterar senha</h3>
+        <form id="form-senha" novalidate>
+          <label for="atual">Senha atual</label><input id="atual" type="password" autocomplete="current-password">
+          <label for="nova">Nova senha <small>(mínimo 6 caracteres)</small></label><input id="nova" type="password" minlength="6" autocomplete="new-password">
+          <label for="confirma">Repita a nova senha</label><input id="confirma" type="password" autocomplete="new-password">
+          <p class="erro" id="erro-senha" role="alert"></p>
+          <button class="btn" type="submit">ALTERAR SENHA</button>
+        </form>
+      </section>
+
+      <!-- Exportar / excluir -->
+      <section class="caixa">
+        <h3>Seus direitos sobre os dados</h3>
+        <p>Baixe uma cópia de tudo o que o PetMatch guarda sobre você (cadastro, pets, solicitações, mensagens e registros de auditoria).</p>
+        <button class="btn btn-claro" id="exportar">⬇ EXPORTAR MEUS DADOS (JSON)</button>
+        <hr>
+        <p><b>Excluir conta.</b> Seus dados, pets cadastrados e solicitações serão apagados. Isso não pode ser desfeito.</p>
+        <label for="senha-exclusao">Confirme com sua senha</label><input id="senha-exclusao" type="password" autocomplete="current-password">
+        <p class="erro" id="erro-exclusao" role="alert"></p>
+        <button class="btn btn-perigo" id="excluir">EXCLUIR MINHA CONTA</button>
+      </section>
+    </div>
+  </main>
+
+  <script src="regras.js"></script>
+  <script src="app.js"></script>
+  <script>
+    exigirLogin();
+    montarCabecalho('logado');
+    ativarMascaras();
+    const $ = id => document.getElementById(id);
+    const PERFIS = { adotar: 'Adotante', doar: 'Protetor independente', instituicao: 'Instituição (ONG)', admin: 'Administrador' };
+    const PARCERIA = {
+      homologada: '✅ Homologada — você pode cadastrar animais.',
+      em_analise: '⏳ Documentação em análise pela administração.',
+      recusada: '❌ Recusada.',
+      sem_documento: '⚠️ Documentação ainda não enviada.',
+    };
+    // texto curto com sucesso, que some sozinho
+    const ok = (el, msg) => { el.textContent = msg; el.classList.add('sucesso'); setTimeout(() => { el.textContent = ''; el.classList.remove('sucesso'); }, 4000); };
+
+    // preenche a tela com os dados (o app.js dispara o evento "eu" quando busca do servidor)
+    document.addEventListener('eu', ({ detail: eu }) => {
+      $('s-perfil').textContent = PERFIS[eu.perfil];
+      $('s-email').innerHTML = esc(eu.email) + (eu.emailVerificado ? ' ✅ confirmado' : ' ⚠️ não confirmado');
+      $('s-termo').textContent = (eu.termoAtualizado ? 'versão atual aceita' : 'há uma nova versão') + ' em ' + dataBR(eu.aceitouTermosEm);
+      if (eu.parceria) {
+        $('bloco-parceria').hidden = false;
+        $('s-parceria').innerHTML = PARCERIA[eu.parceria] +
+          (eu.parceriaRecusa ? '<br><small>Motivo: ' + esc(eu.parceriaRecusa) + '</small>' : '') +
+          (eu.documentoNome ? '<br><small>Último documento enviado: ' + esc(eu.documentoNome) + '</small>' : '');
+      }
+      if (!$('form-dados').dataset.preenchido) {   // não apaga o que a pessoa está digitando
+        $('form-dados').dataset.preenchido = 1;
+        $('nome').value = eu.nome; $('email').value = eu.email;
+        $('doc').value = eu.doc || ''; $('cep').value = eu.cep || ''; $('whats').value = eu.whats || '';
+        $('nascimento').value = eu.nascimento || '';
+      }
+      if (eu.perfil === 'admin') $('excluir').disabled = true;
+      if (new URLSearchParams(location.search).get('verificado') === '1') history.replaceState(null, '', 'perfil.html');
+    });
+
+    // corrigir dados (mesmas validações do cadastro)
+    $('form-dados').onsubmit = async e => {
+      e.preventDefault();
+      const d = { nome: $('nome').value.trim(), doc: $('doc').value, cep: $('cep').value, whats: $('whats').value, nascimento: $('nascimento').value };
+      const erro = !d.nome ? 'Informe o nome.' : !docValido(d.doc) ? 'CPF/CNPJ inválido.' : !cepValido(d.cep) ? 'CEP inválido.'
+        : !whatsValido(d.whats) ? 'WhatsApp inválido.' : !nascimentoValido(d.nascimento) ? 'Data de nascimento inválida.' : '';
+      if (erro) return $('erro-dados').textContent = erro;
+      try { await api('PUT', '/eu', d); ok($('erro-dados'), 'Dados salvos!'); atualizarEu('logado'); }
+      catch (err) { $('erro-dados').textContent = err.message; }
+    };
+
+    $('form-senha').onsubmit = async e => {
+      e.preventDefault();
+      if ($('nova').value.length < 6) return $('erro-senha').textContent = 'A nova senha precisa ter pelo menos 6 caracteres.';
+      if ($('nova').value !== $('confirma').value) return $('erro-senha').textContent = 'As senhas novas não são iguais.';
+      try {
+        await api('POST', '/eu/senha', { atual: $('atual').value, nova: $('nova').value });
+        e.target.reset();
+        ok($('erro-senha'), 'Senha alterada!');
+      } catch (err) { $('erro-senha').textContent = err.message; }
+    };
+
+    // documentação da parceria
+    $('documento').onchange = async e => {
+      const arquivo = e.target.files[0];
+      e.target.value = '';
+      if (!arquivo) return;
+      if (erroDocumento(arquivo)) return $('erro-doc').textContent = erroDocumento(arquivo);
+      try {
+        await api('POST', '/eu/documento', { documento: await lerArquivo(arquivo), documentoNome: arquivo.name });
+        ok($('erro-doc'), 'Documentação enviada! A administração vai analisar.');
+        atualizarEu('logado');
+      } catch (err) { $('erro-doc').textContent = err.message; }
+    };
+
+    $('exportar').onclick = () => baixar('/eu/exportar', 'meus-dados-petmatch.json').catch(err => alert(err.message));
+
+    $('excluir').onclick = async () => {
+      if (!$('senha-exclusao').value) return $('erro-exclusao').textContent = 'Digite sua senha para confirmar.';
+      if (!confirm('Tem certeza? Sua conta, seus pets e suas solicitações serão apagados para sempre.')) return;
+      try {
+        await api('DELETE', '/eu', { senha: $('senha-exclusao').value });
+        alert('Sua conta foi excluída.');
+        sair();
+      } catch (err) { $('erro-exclusao').textContent = err.message; }
+    };
+  </script>
+</body>
+</html>

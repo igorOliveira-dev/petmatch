@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PetMatch - Solicitações de adoção</title>
+  <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="cabecalho"></div>
+  <main>
+    <h2>Solicitações de adoção</h2>
+    <p class="erro" id="erro" role="alert"></p>
+
+    <!-- Como adotante -->
+    <section>
+      <h3>Minhas solicitações</h3>
+      <p class="dica">Você pode ter até 3 solicitações em análise ao mesmo tempo e cancelar qualquer uma enquanto estiver em andamento.</p>
+      <div id="minhas" class="lista-solicitacoes"></div>
+    </section>
+
+    <!-- Como ONG / protetor -->
+    <section id="bloco-recebidas" hidden>
+      <div class="barra-titulo">
+        <h3>Recebidas pelos meus pets</h3>
+        <button class="btn btn-claro btn-pequeno" id="baixar">⬇ Relatório (CSV)</button>
+      </div>
+      <p class="dica">Dê o primeiro retorno em até 7 dias. A entrevista é obrigatória antes de aprovar, e toda reprovação precisa de justificativa (o adotante verá).
+        Use os dados de contato só para o processo de adoção.</p>
+      <div id="recebidas" class="lista-solicitacoes"></div>
+    </section>
+  </main>
+
+  <script src="regras.js"></script>
+  <script src="app.js"></script>
+  <script>
+    exigirLogin();
+    montarCabecalho('logado');
+    const $ = id => document.getElementById(id);
+    const STATUS = { em_analise: 'Em análise', entrevista: 'Entrevista agendada', aprovada: 'Aprovada', reprovada: 'Reprovada', cancelada: 'Cancelada' };
+    const ativa = s => s.status === 'em_analise' || s.status === 'entrevista';
+    const selo = s => `<span class="selo selo-${s.status}">${STATUS[s.status]}</span>`;
+    // valor para <input type="datetime-local"> no horário local
+    const paraInput = d => d ? new Date(new Date(d) - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '';
+
+    function desenharMinhas(lista) {
+      $('minhas').innerHTML = lista.length ? lista.map(s => `
+        <article class="caixa solicitacao">
+          <div class="barra-titulo"><b><a href="animal.html?id=${s.petId}">${esc(s.pet)}</a></b>${selo(s)}</div>
+          <p class="dica">Responsável: ${esc(s.tutor)} · enviada em ${dataBR(s.criadoEm)}</p>
+          ${s.entrevistaEm && ativa(s) ? `<p>📅 Entrevista: <b>${dataBR(s.entrevistaEm)}</b></p>` : ''}
+          ${s.status === 'aprovada' ? '<p>🎉 Parabéns! O responsável vai combinar com você a assinatura do termo de adoção e a entrega.</p>' : ''}
+          ${s.justificativa ? `<p><b>Justificativa:</b> ${esc(s.justificativa)}</p>` : ''}
+          ${ativa(s) ? `<button class="btn btn-claro btn-pequeno" onclick="agir(${s.id}, 'cancelar', null, 'Cancelar esta solicitação?')">Cancelar solicitação</button>` : ''}
+        </article>`).join('')
+        : '<p>Você ainda não fez nenhuma solicitação. Escolha um pet na <a href="home.html">página inicial</a>.</p>';
+    }
+
+    function desenharRecebidas(lista) {
+      $('recebidas').innerHTML = lista.length ? lista.map(s => {
+        const whats = (s.adotanteWhats || '').replace(/\D/g, '');
+        const respostas = QUESTIONARIO.map(q => `<li><b>${esc(q.pergunta)}</b> ${esc(s.respostas[q.id])}</li>`).join('');
+        return `
+        <article class="caixa solicitacao ${s.diasSemRetorno > PRAZO_RETORNO_DIAS ? 'atrasada' : ''}">
+          <div class="barra-titulo"><b>#${s.id} · <a href="animal.html?id=${s.petId}">${esc(s.pet)}</a> — ${esc(s.adotanteNome)}${s.adotanteIdade != null ? ', ' + s.adotanteIdade + ' anos' : ''}</b>${selo(s)}</div>
+          <p class="dica">Recebida em ${dataBR(s.criadoEm)}${s.primeiroRetornoEm ? ' · primeiro retorno em ' + dataBR(s.primeiroRetornoEm) : ''}</p>
+          ${s.diasSemRetorno != null ? `<p class="${s.diasSemRetorno > PRAZO_RETORNO_DIAS ? 'erro' : 'dica'}">⏱ ${s.diasSemRetorno} dia(s) sem retorno${s.diasSemRetorno > PRAZO_RETORNO_DIAS ? ' — prazo de 7 dias vencido!' : ' (prazo: 7 dias)'}</p>` : ''}
+          <p>📞 ${whats ? `<a href="https://wa.me/55${whats}" target="_blank" rel="noopener">${esc(s.adotanteWhats)}</a> · ` : ''}<a href="mailto:${esc(s.adotanteEmail)}">${esc(s.adotanteEmail)}</a>${s.adotanteCep ? ' · CEP ' + esc(s.adotanteCep) : ''}</p>
+          <details><summary>Questionário de triagem</summary><ul class="respostas">${respostas}</ul></details>
+          ${s.entrevistaEm ? `<p>📅 Entrevista: <b>${dataBR(s.entrevistaEm)}</b></p>` : ''}
+          ${s.parecer ? `<p><b>Parecer da entrevista:</b> ${esc(s.parecer)}</p>` : ''}
+          ${s.justificativa ? `<p><b>Justificativa:</b> ${esc(s.justificativa)}</p>` : ''}
+          ${ativa(s) ? `
+          <div class="acoes-solicitacao">
+            <div>
+              <label>${s.entrevistaEm ? 'Remarcar' : 'Agendar'} entrevista</label>
+              <input type="datetime-local" id="quando-${s.id}" value="${paraInput(s.entrevistaEm)}">
+              <button class="btn btn-pequeno" onclick="agir(${s.id}, 'agendar', { quando: valorData(${s.id}) })">${s.entrevistaEm ? 'Remarcar' : 'Agendar'}</button>
+            </div>
+            ${s.status === 'entrevista' ? `
+            <div>
+              <label>Parecer da entrevista (obrigatório para aprovar)</label>
+              <textarea id="parecer-${s.id}" maxlength="1000" rows="2">${esc(s.parecer || '')}</textarea>
+              <button class="btn btn-pequeno" onclick="agir(${s.id}, 'parecer', { parecer: $('parecer-${s.id}').value })">Salvar parecer</button>
+              <button class="btn btn-pequeno btn-sucesso" ${s.parecer ? '' : 'disabled title="Registre o parecer primeiro"'}
+                onclick="agir(${s.id}, 'aprovar', null, 'Aprovar esta adoção? As outras solicitações para este pet serão encerradas.')">✔ Aprovar adoção</button>
+            </div>` : ''}
+            <div>
+              <label>Justificativa da reprovação (o adotante verá)</label>
+              <textarea id="justificativa-${s.id}" maxlength="1000" rows="2"></textarea>
+              <button class="btn btn-pequeno btn-perigo" onclick="agir(${s.id}, 'reprovar', { justificativa: $('justificativa-${s.id}').value }, 'Reprovar esta solicitação?')">✖ Reprovar</button>
+            </div>
+          </div>` : ''}
+        </article>`;
+      }).join('') : '<p>Nenhuma solicitação recebida ainda.</p>';
+    }
+
+    const valorData = id => { const v = $('quando-' + id).value; return v ? new Date(v).toISOString() : ''; };
+
+    async function agir(id, acao, corpo, pergunta) {
+      if (pergunta && !confirm(pergunta)) return;
+      $('erro').textContent = '';
+      try { await api('POST', `/solicitacoes/${id}/${acao}`, corpo || {}); await carregar(); }
+      catch (e) { $('erro').textContent = e.message; $('erro').scrollIntoView({ block: 'center' }); }
+    }
+
+    let temRecebidas = false;
+    // a seção "recebidas" aparece para parceiros, admin ou quem já recebeu alguma
+    const mostrarRecebidas = () => {
+      const u = usuarioLogado() || {};
+      $('bloco-recebidas').hidden = !(temRecebidas || (u.eu && u.eu.parceria) || u.perfil === 'admin');
+    };
+    async function carregar() {
+      try {
+        const [minhas, recebidas] = await Promise.all([api('GET', '/solicitacoes/minhas'), api('GET', '/solicitacoes/recebidas')]);
+        desenharMinhas(minhas);
+        desenharRecebidas(recebidas);
+        temRecebidas = recebidas.length > 0;
+        mostrarRecebidas();
+      } catch (e) { $('erro').textContent = e.message; }
+    }
+    document.addEventListener('eu', mostrarRecebidas);
+    carregar();
+    $('baixar').onclick = () => baixar('/relatorios/solicitacoes.csv', 'solicitacoes-recebidas.csv').catch(e => $('erro').textContent = e.message);
+  </script>
+</body>
+</html>

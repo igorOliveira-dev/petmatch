@@ -45,6 +45,19 @@
       <div class="rolagem"><table class="tabela" id="tab-importado"></table></div>
     </div>
 
+    <!-- Pedidos de parceria aguardando homologação -->
+    <h3>Pedidos de parceria <span class="contador" id="n-parcerias"></span></h3>
+    <p class="dica">Só ONGs e protetores homologados podem cadastrar animais. Confira a documentação antes de aprovar.</p>
+    <div class="rolagem"><table class="tabela" id="tab-parcerias"></table></div>
+
+    <!-- Prazo de primeiro retorno vencido -->
+    <h3>Solicitações sem retorno há mais de 7 dias <span class="contador" id="n-atrasadas"></span></h3>
+    <div class="rolagem"><table class="tabela" id="tab-atrasadas"></table></div>
+
+    <!-- Contato e denúncias -->
+    <h3>Mensagens e denúncias <span class="contador" id="n-mensagens"></span></h3>
+    <div class="rolagem"><table class="tabela" id="tab-mensagens"></table></div>
+
     <!-- Tabela de usuários -->
     <h3>Usuários</h3>
     <div class="rolagem"><table class="tabela" id="tab-usuarios"></table></div>
@@ -52,6 +65,12 @@
     <!-- Tabela de pets -->
     <h3>Pets</h3>
     <div class="rolagem"><table class="tabela" id="tab-pets"></table></div>
+
+    <!-- Auditoria -->
+    <details>
+      <summary><h3 class="inline">Auditoria (últimas 300 operações sobre dados pessoais)</h3></summary>
+      <div class="rolagem"><table class="tabela" id="tab-auditoria"></table></div>
+    </details>
   </main>
 
   <script src="app.js"></script>
@@ -61,27 +80,89 @@
     const $ = id => document.getElementById(id);
     const data = d => d ? new Date(d).toLocaleString('pt-BR') : '-';
 
-    // Desenha as duas tabelas com os dados atuais do banco
-    async function desenhar() {
-      const [usuarios, pets] = await Promise.all([api('GET', '/usuarios'), api('GET', '/pets')]);
+    const PERFIS = { adotar: 'Adotante', doar: 'Protetor', instituicao: 'Instituição', admin: 'Admin' };
+    const PARCERIA = { homologada: '✅ Homologada', em_analise: '⏳ Em análise', recusada: '❌ Recusada', sem_documento: '⚠️ Sem documento' };
+    const vazio = (colunas, msg) => `<tr><td colspan="${colunas}" class="dica">${msg}</td></tr>`;
+    // botões que levam o e-mail num data-attribute (seguro contra aspas no texto)
+    const botao = (texto, classe, funcao, email) => `<button class="btn ${classe}" data-email="${esc(email)}" onclick="${funcao}(this.dataset.email)">${texto}</button>`;
 
-      // Usuários: o admin não tem botão de excluir (evita se apagar por engano)
+    // Desenha todas as tabelas com os dados atuais do banco
+    async function desenhar() {
+      const [usuarios, pets, atrasadas, mensagens, auditoria] = await Promise.all([
+        api('GET', '/usuarios'), api('GET', '/pets'), api('GET', '/solicitacoes/atrasadas'), api('GET', '/mensagens'), api('GET', '/auditoria')]);
+
+      usuarios.forEach(u => nomesDocumentos[u.email] = u.documento_nome);
+      // Parcerias: quem enviou documentação e ainda não foi homologado
+      const pendentes = usuarios.filter(u => u.parceria === 'em_analise');
+      $('n-parcerias').textContent = pendentes.length || '';
+      $('tab-parcerias').innerHTML = '<tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Documento</th><th></th></tr>' +
+        (pendentes.map(u => `<tr>
+          <td>${esc(u.nome)}</td><td>${esc(u.email)}</td><td>${PERFIS[u.perfil]}</td>
+          <td>${botao('📎 ' + esc(u.documento_nome), 'btn-claro', 'verDocumento', u.email)}</td>
+          <td class="acoes-tabela">${botao('✔ Homologar', 'btn-sucesso', 'homologar', u.email)} ${botao('✖ Recusar', 'btn-perigo', 'recusar', u.email)}</td>
+        </tr>`).join('') || vazio(5, 'Nenhum pedido aguardando.'));
+
+      // Prazos vencidos (sem dados de contato do adotante)
+      $('n-atrasadas').textContent = atrasadas.length || '';
+      $('tab-atrasadas').innerHTML = '<tr><th>Solicitação</th><th>Pet</th><th>Responsável</th><th>Dias sem retorno</th></tr>' +
+        (atrasadas.map(s => `<tr><td>#${s.id}</td><td><a href="animal.html?id=${s.petId}">${esc(s.pet)}</a></td>
+          <td>${esc(s.tutor)}<br><small>${esc(s.tutorEmail || 'pet do site (você)')}</small></td><td class="erro">${s.dias}</td></tr>`).join('')
+        || vazio(4, 'Nenhuma solicitação com prazo vencido. 👍'));
+
+      // Mensagens: abertas primeiro
+      $('n-mensagens').textContent = mensagens.filter(m => !m.resolvidaEm).length || '';
+      $('tab-mensagens').innerHTML = '<tr><th>Data</th><th>Tipo</th><th>De</th><th>Pet</th><th>Mensagem</th><th></th></tr>' +
+        (mensagens.map(m => `<tr class="${m.resolvidaEm ? 'resolvida' : ''}">
+          <td>${data(m.criadoEm)}</td><td>${m.tipo === 'denuncia' ? '⚠️ Denúncia' : 'Contato'}</td>
+          <td>${esc(m.nome)}<br><small><a href="mailto:${esc(m.email)}">${esc(m.email)}</a></small></td>
+          <td>${m.petId ? `<a href="animal.html?id=${m.petId}">#${m.petId} ${esc(m.pet || '')}</a>` : '-'}</td>
+          <td class="texto-longo">${esc(m.mensagem)}</td>
+          <td>${m.resolvidaEm ? 'Resolvida' : `<button class="btn btn-claro" onclick="resolver(${m.id})">Marcar resolvida</button>`}</td>
+        </tr>`).join('') || vazio(6, 'Nenhuma mensagem.'));
+
+      // Usuários: o admin não pode ser suspenso nem excluído
       $('tab-usuarios').innerHTML =
-        '<tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>WhatsApp</th><th>Aceitou os termos em</th><th></th></tr>' +
-        usuarios.map(u => `<tr>
-          <td>${esc(u.nome)}</td><td>${esc(u.email)}</td><td>${esc(u.perfil)}</td><td>${esc(u.whats || '-')}</td><td>${data(u.aceitou_termos_em)}</td>
-          <td>${u.perfil === 'admin' ? '' : `<button class="btn btn-perigo" data-email="${esc(u.email)}" onclick="excluirUsuario(this.dataset.email)">Excluir</button>`}</td>
+        '<tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>WhatsApp</th><th>E-mail confirmado</th><th>Parceria</th><th>Aceitou o termo em</th><th></th></tr>' +
+        usuarios.map(u => `<tr class="${u.suspenso_em ? 'suspenso' : ''}">
+          <td>${esc(u.nome)}${u.suspenso_em ? '<br><small class="erro">Suspenso</small>' : ''}</td><td>${esc(u.email)}</td><td>${PERFIS[u.perfil]}</td>
+          <td>${esc(u.whats || '-')}</td><td>${u.email_verificado_em ? 'Sim' : 'Não'}</td>
+          <td>${u.parceria ? PARCERIA[u.parceria] + (u.documento_nome && u.parceria !== 'em_analise' ? '<br>' + botao('📎 documento', 'btn-claro', 'verDocumento', u.email) : '') : '-'}
+            ${u.parceria === 'homologada' ? '<br>' + botao('Revogar', 'btn-claro', 'recusar', u.email) : ''}</td>
+          <td>${data(u.aceitou_termos_em)}</td>
+          <td class="acoes-tabela">${u.perfil === 'admin' ? '' :
+            botao(u.suspenso_em ? 'Reativar' : 'Suspender', 'btn-claro', u.suspenso_em ? 'reativar' : 'suspender', u.email) + ' ' +
+            botao('Excluir', 'btn-perigo', 'excluirUsuario', u.email)}</td>
         </tr>`).join('');
 
-      // Pets: mostra status e permite excluir
+      // Pets: mostra status e permite editar/excluir
       $('tab-pets').innerHTML =
         '<tr><th>Código</th><th>Nome</th><th>Espécie</th><th>Tutor</th><th>Status</th><th></th></tr>' +
         pets.map(p => `<tr>
-          <td>#${String(p.id).padStart(4, '0')}</td><td>${esc(p.nome)}</td><td>${esc(p.especie)}</td><td>${esc(p.tutor)}</td>
-          <td>${p.adotado ? 'Adotado' : 'Disponível'}</td>
+          <td>#${String(p.id).padStart(4, '0')}</td><td><a href="animal.html?id=${p.id}">${esc(p.nome)}</a></td><td>${esc(p.especie)}</td><td>${esc(p.tutor)}</td>
+          <td>${p.adotado ? 'Adotado em ' + data(p.adotadoEm) : 'Disponível'}</td>
           <td class="acoes-tabela"><a class="btn btn-claro" href="registrar-animal.html?id=${p.id}">Editar</a> <button class="btn btn-perigo" onclick="excluirPet(${p.id})">Excluir</button></td>
         </tr>`).join('');
+
+      $('tab-auditoria').innerHTML = '<tr><th>Quando</th><th>Quem</th><th>Ação</th><th>Sobre</th><th>Detalhes</th></tr>' +
+        auditoria.map(a => `<tr><td>${data(a.quando)}</td><td>${esc(a.autor || 'anônimo')}</td><td>${esc(a.acao)}</td><td>${esc(a.alvo || '-')}</td>
+          <td><small>${Object.keys(a.detalhes).length ? esc(JSON.stringify(a.detalhes)) : ''}</small></td></tr>`).join('');
     }
+
+    // ações do admin (todas recarregam as tabelas)
+    const executar = p => p.then(desenhar).catch(mostrarErro);
+    const homologar = email => confirm('Homologar este parceiro? Ele poderá cadastrar animais.') &&
+      executar(api('POST', `/usuarios/${encodeURIComponent(email)}/parceria`, { aprovar: true }));
+    function recusar(email) {
+      const motivo = prompt('Motivo (será enviado ao usuário por e-mail):');
+      if (motivo && motivo.trim().length >= 5) executar(api('POST', `/usuarios/${encodeURIComponent(email)}/parceria`, { aprovar: false, motivo }));
+      else if (motivo !== null) alert('Escreva um motivo com pelo menos 5 caracteres.');
+    }
+    const suspender = email => confirm('Suspender esta conta? O usuário não conseguirá mais entrar.') &&
+      executar(api('POST', `/usuarios/${encodeURIComponent(email)}/suspensao`, { suspender: true }));
+    const reativar = email => executar(api('POST', `/usuarios/${encodeURIComponent(email)}/suspensao`, { suspender: false }));
+    const nomesDocumentos = {};
+    const verDocumento = email => baixar(`/usuarios/${encodeURIComponent(email)}/documento`, nomesDocumentos[email] || 'documento').catch(mostrarErro);
+    const resolver = id => executar(api('POST', `/mensagens/${id}/resolver`));
 
     const mostrarErro = e => $('erro').textContent = e.message;
 

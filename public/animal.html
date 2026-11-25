@@ -14,67 +14,131 @@
       <div>
         <div class="foto" id="foto" style="cursor:default"><span id="patinha">🐾</span><div class="nome" id="nome"></div></div>
         <p class="acoes-form">
-          <button class="btn" id="adotar">ADOTAR</button>
+          <button class="btn" id="adotar" hidden>QUERO ADOTAR</button>
           <a class="btn" id="editar" hidden>EDITAR</a>
           <button class="btn btn-perigo" id="excluir" hidden>EXCLUIR</button>
         </p>
+        <p class="centro" id="situacao-pedido"></p>
+        <div class="aviso" id="adotante" hidden></div>
+        <p class="centro"><a class="link-discreto" id="denunciar">⚠️ Denunciar anúncio</a></p>
       </div>
       <div class="info" id="info"></div>
     </div>
+
+    <!-- Questionário de triagem (aparece ao clicar em QUERO ADOTAR) -->
+    <form class="caixa questionario" id="questionario" hidden novalidate>
+      <h3>Solicitação de adoção — questionário de triagem</h3>
+      <p class="dica">Responda tudo com sinceridade: suas respostas vão para a ONG/protetor responsável, que fará uma entrevista com você antes de decidir.</p>
+      <div id="perguntas"></div>
+      <label class="aceite"><input type="checkbox" id="declaro"> Declaro que as respostas acima são verdadeiras.</label>
+      <p class="erro" id="erro-q" role="alert"></p>
+      <p class="acoes-form">
+        <button class="btn btn-claro" type="button" id="cancelar-q">CANCELAR</button>
+        <button class="btn" type="submit" id="enviar-q">ENVIAR SOLICITAÇÃO</button>
+      </p>
+    </form>
   </main>
 
+  <script src="regras.js"></script>
   <script src="app.js"></script>
   <script>
     exigirLogin();
     montarCabecalho('logado');
+    const $ = id => document.getElementById(id);
 
-    // Pega o id da URL (animal.html?id=1) e procura o pet
+    // Pega o id da URL (animal.html?id=1) e procura o pet + minhas solicitações
     const id = Number(new URLSearchParams(location.search).get('id'));
-    api('GET', '/pets/' + id).then(mostrar).catch(() => { alert('Pet não encontrado.'); location.href = 'home.html'; });
+    Promise.all([api('GET', '/pets/' + id), api('GET', '/solicitacoes/minhas')])
+      .then(([pet, minhas]) => mostrar(pet, minhas))
+      .catch(() => { alert('Pet não encontrado.'); location.href = 'home.html'; });
 
-    function mostrar(pet) {
-    // Preenche a tela com os dados do pet
-    document.getElementById('codigo').textContent = '#' + String(pet.id).padStart(4, '0');
-    document.getElementById('nome').textContent = pet.nome;
-    if (pet.foto) {
-      document.getElementById('foto').style.backgroundImage = `url('${pet.foto}')`;
-      document.getElementById('patinha').style.display = 'none';
+    function mostrar(pet, minhas) {
+      const eu = usuarioLogado();
+      $('codigo').textContent = '#' + String(pet.id).padStart(4, '0');
+      $('nome').textContent = pet.nome;
+      if (pet.foto) {
+        $('foto').style.backgroundImage = `url('${pet.foto}')`;
+        $('patinha').style.display = 'none';
+      }
+      const dados = [
+        ['👶', 'Idade', pet.idade + (pet.idade === 1 ? ' ano' : ' anos')], ['⚖️', 'Peso', String(pet.peso).replace('.', ',') + ' kg'], ['🐾', 'Temperamento', pet.temperamento],
+        ['⚧', 'Sexo', pet.sexo], ['💉', 'Vacinação', pet.vacinacao], ['✂️', 'Situação', pet.situacao],
+        ['🧬', 'Espécie', pet.especie], ['📍', 'Cidade', pet.cidade], ['👤', 'Tutor', pet.tutor],
+        ['💰', 'Taxa (castração/vacinação)', pet.taxa > 0 ? dinheiro(pet.taxa) : 'Sem taxa'],
+      ];
+      $('info').innerHTML = dados.map(d => `<div><span class="icone">${d[0]}</span>${d[1]}:<br>${esc(d[2])}</div>`).join('');
+      $('denunciar').href = 'contato.html?tipo=denuncia&pet=' + pet.id;
+
+      // responsável: quem cadastrou (pets sem tutor são do site, cuidados pelo admin)
+      const responsavel = pet.tutorEmail === eu.email || (!pet.tutorEmail && eu.perfil === 'admin');
+      if (responsavel || eu.perfil === 'admin') {
+        $('editar').hidden = false;
+        $('editar').href = 'registrar-animal.html?id=' + pet.id;
+        $('excluir').hidden = false;
+        $('excluir').onclick = async () => {
+          if (!confirm('Excluir ' + pet.nome + '? As solicitações de adoção dele também serão apagadas. Isso não pode ser desfeito.')) return;
+          try { await api('DELETE', '/pets/' + pet.id); location.href = eu.perfil === 'admin' ? 'admin.html' : 'meus-pets.html'; }
+          catch (e) { alert(e.message); }
+        };
+      }
+      // registro de quem adotou (só o responsável e o admin veem)
+      if (pet.adotante) {
+        $('adotante').hidden = false;
+        $('adotante').innerHTML = `🏠 Adotado por <b>${esc(pet.adotante.nome)}</b> em ${dataBR(pet.adotadoEm)}<br>
+          <small>${esc(pet.adotante.email)} · ${esc(pet.adotante.whats || '')}</small>`;
+      }
+
+      // situação para quem quer adotar
+      const pedido = minhas.find(s => s.petId === pet.id && (s.status === 'em_analise' || s.status === 'entrevista'));
+      if (pet.adotado) $('situacao-pedido').textContent = '🏠 Este pet já foi adotado.';
+      else if (pedido) $('situacao-pedido').innerHTML = `Você já tem uma solicitação para ${esc(pet.nome)} (<a href="solicitacoes.html">acompanhar</a>).`;
+      else if (!responsavel) $('adotar').hidden = false;
     }
-    const dados = [
-      ['👶', 'Idade', pet.idade + (pet.idade === 1 ? ' ano' : ' anos')], ['⚖️', 'Peso', pet.peso + ' kg'], ['🐾', 'Temperamento', pet.temperamento],
-      ['⚧', 'Sexo', pet.sexo], ['💉', 'Vacinação', pet.vacinacao], ['✂️', 'Situação', pet.situacao],
-      ['🧬', 'Espécie', pet.especie], ['📍', 'Cidade', pet.cidade], ['👤', 'Tutor', pet.tutor]
-    ];
-    document.getElementById('info').innerHTML = dados.map(d => `<div><span class="icone">${d[0]}</span>${d[1]}:<br>${esc(d[2])}</div>`).join('');
 
-    // Botão ADOTAR: confirma e marca o pet como adotado (some da home)
-    const botao = document.getElementById('adotar');
-    if (pet.adotado) { botao.disabled = true; botao.textContent = 'JÁ ADOTADO'; }
-    const dono = pet.tutorEmail === usuarioLogado().email;
-    if (dono) botao.style.display = 'none';   // não adota o próprio pet
+    /* ---------- Questionário de triagem ---------- */
+    $('perguntas').innerHTML = QUESTIONARIO.map(q => `
+      <div class="campo" data-id="${q.id}">
+        <span class="rotulo">${esc(q.pergunta)} <span class="obrig">*</span></span>
+        ${q.texto ? `<textarea id="q-${q.id}" rows="3" maxlength="${q.max}"></textarea>`
+                  : `<div class="opcoes" data-nome="${q.id}">${q.opcoes.map(o => `<button type="button">${esc(o)}</button>`).join('')}</div>`}
+      </div>`).join('');
+    ativarOpcoes();
 
-    // EDITAR / EXCLUIR: só para o dono do pet ou o admin
-    if (dono || usuarioLogado().perfil === 'admin') {
-      document.getElementById('editar').hidden = false;
-      document.getElementById('editar').href = 'registrar-animal.html?id=' + pet.id;
-      document.getElementById('excluir').hidden = false;
-      document.getElementById('excluir').onclick = async () => {
-        if (!confirm('Excluir ' + pet.nome + '? Isso não pode ser desfeito.')) return;
-        try {
-          await api('DELETE', '/pets/' + pet.id);
-          location.href = 'meus-pets.html';
-        } catch (e) { alert(e.message); }
-      };
-    }
-    botao.onclick = async () => {
-      if (!confirm('Deseja adotar ' + pet.nome + '?')) return;
-      try {
-        await api('POST', '/pets/' + pet.id + '/adotar');
-        alert('Pedido enviado! O tutor (' + pet.tutor + ') entrará em contato.');
-        location.href = 'home.html';
-      } catch (e) { alert(e.message); }
+    $('adotar').onclick = () => {
+      const eu = usuarioLogado().eu || {};
+      // avisa antes de responder tudo, se faltar algo que o servidor vai exigir
+      if (eu.emailVerificado === false) return alert('Confirme seu e-mail antes de solicitar uma adoção (veja o aviso no topo da página).');
+      if (eu.nascimento === null) return alert('Informe sua data de nascimento em Meus dados antes de solicitar uma adoção.');
+      if (eu.nascimento && idade(eu.nascimento) < IDADE_MINIMA_ADOCAO) return alert('É preciso ter 18 anos completos para solicitar uma adoção.');
+      $('questionario').hidden = false;
+      $('adotar').hidden = true;
+      $('questionario').scrollIntoView({ behavior: 'smooth' });
     };
-    }
+    $('cancelar-q').onclick = () => { $('questionario').hidden = true; $('adotar').hidden = false; };
+
+    $('questionario').onsubmit = async e => {
+      e.preventDefault();
+      const respostas = {};
+      QUESTIONARIO.forEach(q => {
+        respostas[q.id] = q.texto ? $('q-' + q.id).value.trim()
+          : document.querySelector(`.opcoes[data-nome="${q.id}"] .ativo`)?.textContent || '';
+      });
+      const erro = validarQuestionario(respostas);
+      // destaca as perguntas sem resposta válida
+      QUESTIONARIO.forEach(q => {
+        const r = respostas[q.id];
+        const ok = q.texto ? r.length >= q.min && r.length <= q.max : q.opcoes.includes(r);
+        document.querySelector(`#perguntas .campo[data-id="${q.id}"]`).classList.toggle('invalido', !ok);
+      });
+      if (erro) return $('erro-q').textContent = erro;
+      if (!$('declaro').checked) return $('erro-q').textContent = 'Marque a declaração de que as respostas são verdadeiras.';
+      $('enviar-q').disabled = true;
+      try {
+        await api('POST', `/pets/${id}/solicitacoes`, { respostas });
+        alert('Solicitação enviada! O responsável vai entrar em contato para agendar a entrevista.');
+        location.href = 'solicitacoes.html';
+      } catch (err) { $('erro-q').textContent = err.message; $('enviar-q').disabled = false; }
+    };
   </script>
 </body>
 </html>
