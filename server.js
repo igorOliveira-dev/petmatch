@@ -21,7 +21,13 @@ const DIA = 24 * 60 * 60 * 1000;
 const TERMO_VERSAO = "2026-11-24"; // mude a data ao alterar o termos.html: os usuários serão avisados
 
 /* --- E-mail (notificações). Sem SMTP_URL, só mostra no console (modo de teste) --- */
-const correio = process.env.SMTP_URL ? nodemailer.createTransport(process.env.SMTP_URL) : null;
+// SMTP_URL errado (sem smtps://, com aspas, senha com "/" sem codificar...) não pode derrubar o site: só desliga os e-mails
+const correio = (() => {
+  const url = (process.env.SMTP_URL || "").trim().replace(/^["']|["']$/g, "");
+  if (!url) return null;
+  try { return nodemailer.createTransport(url); }
+  catch (e) { console.error("SMTP_URL inválido, e-mails desligados:", e.message, "(formato: smtps://usuario:senha@servidor:465)"); return null; }
+})();
 function enviarEmail(para, assunto, texto) {
   if (!para) return;
   if (!correio) return console.log(`[e-mail NÃO enviado: falta SMTP_URL] Para: ${para} | ${assunto}\n${texto}\n`);
