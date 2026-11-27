@@ -346,7 +346,27 @@ textarea {
 .aceite a {
   color: var(--azul);
 }
-.aceite {
+/* caixa de confirmação ao lado do texto (o "input { width: 100% }" geral não vale para elas) */
+input[type="checkbox"],
+input[type="radio"] {
+  width: auto;
+  padding: 0;
+}
+label.aceite {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 16px 0 4px;
+  text-align: left;
+  line-height: 1.4;
+  cursor: pointer;
+}
+label.aceite input {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--azul);
   cursor: pointer;
 }
 .termos {
