@@ -6,6 +6,8 @@ Site de adoção de cães e gatos que conecta adotantes a ONGs e protetores de B
 
 **Stack:** HTML/CSS/JS puro (`public/`) · Node.js + Express (`server.js`) · PostgreSQL (`schema.sql`, aplicado sozinho no start)
 
+Modelo do banco: [docs/banco-de-dados.md](docs/banco-de-dados.md) (diagrama ER e tabelas).
+
 ## Rodar
 
 ```bash
